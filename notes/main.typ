@@ -1,4 +1,4 @@
-#import "@local/typst-template:0.38.0": *
+#import "@local/typst-template:0.40.0": *
 
 #show: template.with(
   title: [Notes --- Competitive programming],
@@ -31,11 +31,11 @@ the moves counter by `1`. If iteration has not yet finished by the time the
 _available_ list is empty, resolve all `?` and `0` bytes to `1`. For each
 resolution operation, increment the moves counter by 1.
 
-Compare in one last linear pass the current input sequence (after all swapping
-and toggling/setting operations,) and compare it with the target sequence. Halt
+Compare, in one last linear pass, the (current) input sequence (after all
+swapping and toggling/setting operations) with the target sequence. Halt
 iteration as soon as one byte mismatches, and output `-1`, for there is no
 possible solution. If iteration finishes without any mismatching bytes, then the
-sequences matches, and the number of moves registered thus far should be output.
+sequences match, and the number of moves registered thus far should be output.
 
 The total cost of the algorithm should be $O(n)$ for the initial pass, then
 $O(n log n)$ to sort the _required_ list, then $O(n)$ for the second linear pass
@@ -43,4 +43,11 @@ comparing the _required_ list with the _available_ list, and finally one $O(n)$
 linear pass to compare the input sequence with the target sequence. For inputs
 where $n$ ranges between 1 and 100, the asymptotic approximation seems feasible,
 as it goes for $O(n log n)$. Considering there are only 200 sample cases per
-timed program run, ignoring constant factors also seems feasible.
+timed program run, ignoring constant factors seems feasible.
+
+The algorithm falls apart in some test case.
+
+```rust
+let test = "1??000";
+let target = "110110";
+```
