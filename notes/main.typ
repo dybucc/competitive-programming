@@ -42,12 +42,44 @@ $O(n log n)$ to sort the _required_ list, then $O(n)$ for the second linear pass
 comparing the _required_ list with the _available_ list, and finally one $O(n)$
 linear pass to compare the input sequence with the target sequence. For inputs
 where $n$ ranges between 1 and 100, the asymptotic approximation seems feasible,
-as it goes for $O(n log n)$. Considering there are only 200 sample cases per
-timed program run, ignoring constant factors seems feasible.
+as it goes for $O(n + n log n + n) = O(n log n)$. Considering there are only 200
+sample cases per timed program run, ignoring constant factors seems feasible.
 
-The algorithm falls apart in some test case.
+The algorithm falls apart in some test case. Time to figure out what is going on
+exactly.
 
-```rust
-let test = "1??000";
-let target = "110110";
-```
+Assume the input to be `100?01`, and the target sequence to be `101000`. First,
+let us establish the lower bound on the number of moves operations.
+
++ Going from `100?01` to `100001`, we resolve the only `?` byte, which is a
+  mandatory move for any input sequence to even attempt resembling the target
+  sequence.
++ Going from `100001` to `101000`, we swap the two `1` characters and thus
+  compute the final solution; Namely, `2` for a number of moves equivalent to
+  the length of this enumerated list.
+
+The current algorithm attemps to perform these steps in reverse, as it assumes
+the `?` bytes require resolution anyway, and can be made into any one of `1` or
+`0` bytes. Thus, it acts first on the constrained parts of the input byte
+sequence: The `1` and `0` bytes. It prioritizes finding swapping operations
+instead of toggling operations, such that if some byte index $theta$ denotes a
+`1` byte in the target sequence where a `0` or `?` byte is found at the same
+index in the input sequence, and some byte index $omega$ denotes a `0` byte in
+the target sequence where a `1` byte is found at the same index in the input
+sequence, it will prioritize swapping these byte indices at the input sequence
+to avoid performing unnecessary bit toggling operations on existing `0` bytes in
+the input sequence, as those could very well ruin the input sequence with a
+larger number of `1` bytes than those present in the target sequence.
+
+By this heuristic, the algorithm would gather first the two byte indices
+matching possible swaps, namely byte indices 2 and 5, corresponding with the
+only "required" `1` and the only "available" `1`. A swap would follow and thus
+the moves counter would increase by 1. Without any other "required" `1` bytes
+left, the input byte sequence would perform a linear scan, comparing each of its
+(current) bytes with the target sequence, and incrementing the moves counter by
+1 when encountering a `?` byte in the input sequence.
+
+The missing piece was accounting for additional `1` bytes in input sequence
+indices initially outfit with `0` bytes; The algorithm was ignoring that case,
+and thus not incrementing the moves counter when stumbling upon those in the
+final linear pass.

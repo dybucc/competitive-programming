@@ -43,12 +43,10 @@ fn main() {
                 moves += 1;
             }
         }
-        for (input_by, target_by) in unsafe { a.as_bytes_mut().iter_mut().zip(b.bytes()) } {
-            if *input_by == b'?' {
-                *input_by = target_by;
+        for (input_by, target_by) in a.bytes().zip(b.bytes()) {
+            if input_by == b'?' || input_by == b'0' && target_by == b'1' {
                 moves += 1;
-                continue;
-            } else if *input_by != target_by {
+            } else if input_by != target_by {
                 moves = -1;
                 break;
             }
