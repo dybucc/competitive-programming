@@ -43,13 +43,15 @@ comparing the _required_ list with the _available_ list, and finally one $O(n)$
 linear pass to compare the input sequence with the target sequence. For inputs
 where $n$ ranges between 1 and 100, the asymptotic approximation seems feasible,
 as it goes for $O(n + n log n + n) = O(n log n)$. Considering there are only 200
-sample cases per timed program run, ignoring constant factors seems feasible.
+sample cases per timed program run, ignoring constant factors also seems
+feasible.
 
 The algorithm falls apart in some test case. Time to figure out what is going on
 exactly.
 
 Assume the input to be `100?01`, and the target sequence to be `101000`. First,
-let us establish the lower bound on the number of moves operations.
+let us establish the lower bound on the number of moves operations for this
+specific test case.
 
 + Going from `100?01` to `100001`, we resolve the only `?` byte, which is a
   mandatory move for any input sequence to even attempt resembling the target
@@ -79,7 +81,9 @@ left, the input byte sequence would perform a linear scan, comparing each of its
 (current) bytes with the target sequence, and incrementing the moves counter by
 1 when encountering a `?` byte in the input sequence.
 
-The missing piece was accounting for additional `1` bytes in input sequence
-indices initially outfit with `0` bytes; The algorithm was ignoring that case,
-and thus not incrementing the moves counter when stumbling upon those in the
-final linear pass.
+The missing piece was getting the final linear pass to not only account for the
+number of `?` bytes, but for the number of `0` bytes in the input sequence that
+had to be made `1` bytes. This necessity arises in cases where the number of `1`
+bytes in the target sequence is larger than the combined sum of the number of
+`?` and `1` bytes in the input sequence, thus requiring toggling operations on
+some of the latter's `0` bytes.
