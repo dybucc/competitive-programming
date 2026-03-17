@@ -87,3 +87,35 @@ had to be made `1` bytes. This necessity arises in cases where the number of `1`
 bytes in the target sequence is larger than the combined sum of the number of
 `?` and `1` bytes in the input sequence, thus requiring toggling operations on
 some of the latter's `0` bytes.
+
+#pagebreak()
+
+= Battleship
+
+The problem may be solved by storing, for each player, only the locations where
+they keep thei ships. This should take up at most $2(w times h)$ bytes, for a
+2-tuple consisting of the coordinates for the ship. This could potentially
+overflow system memory if the $w$ were large enough, but the initial iteration
+should do. Then, assumming player 1 is always the one to start the game, simply
+emulate each of the, at most, 2000 shot order queries.
+
+Emulation of each of the queries will require an efficient $O(1)$ lookup
+container to store each player's ship coordinates. A hashset should do just
+fine. Then, for each of the queries, starting with player 1, check if player 2's
+collection of ship coordinates contains the shot order in the query, and remove
+the coordinate from player 2's container if so. Otherwise, switch to assumming
+the next shot corresponds to player 2, and thus perform the reverse container
+operations. Whenever a shot order has been determined to be a hit, check the
+length of the container from which removal has taken place, and halt the game if
+the container is empty. Check then the length of the attacker's container, and
+if non-empty, determine the player to have won. Otherwise, it's a draw.
+
+If the winner hasn't been determined before all queries have been processed,
+then it's a draw.
+
+One consideration the algorithm isn't accounting for is the possibility for a
+draw after one player has had their navy completely sunk. The initial
+implementation is not going to put any thought into this, but secrete sample
+cases likely exploit the fact that the last number of turns that a player took
+must be repeated by the other player prior to determining a winner, irrespective
+of whether the last shot completely sank all of the other player's ships.
