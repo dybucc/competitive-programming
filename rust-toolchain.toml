@@ -4,6 +4,7 @@ profile = "minimal"
 components = [
   "cargo",
   "clippy",
+  "miri",
   "rust-analyzer",
   "rust-src",
   "rust-std",
