@@ -1,17 +1,8 @@
-#![feature(control_flow_into_value)]
-
 use std::{
   cmp,
   collections::HashSet,
   io::{self, Read},
-  ops::ControlFlow,
 };
-
-// TODO: try launching a separate process for `rustc` with the `RUSTC_BOOTSTRAP`
-// variable set and a separate file containing the actual source code for the
-// program to be run in nightly. Then try using something in nightly like
-// `into_value()` for the `ControlFlow` returned in the tail closure of the main
-// closure.
 
 fn main() {
   let mut buf = String::new();
@@ -50,59 +41,52 @@ fn main() {
     }
     use P::*;
     let (mut p, mut t, mut pt, mut fail) = (A, 1, 1, false);
-    (0..queries)
-      .try_for_each(|_| {
-        buf.clear();
-        buf.extend(
-          lines
-            .next()
-            .unwrap()
-            .split_ascii_whitespace()
-            .map(|n| n.parse::<usize>().unwrap()),
-        );
-        let [x, y] = buf[..] else { unreachable!() };
-        match p {
-          | A if b.remove(&(x, y)) => {
-            if b.is_empty() {
-              p = B;
-              t = pt;
-              pt = 1;
-            } else {
-              pt += 1;
-              t = cmp::max(t, pt);
-            }
-            fail = false;
-          },
-          | A => {
+    (0..queries).for_each(|_| {
+      buf.clear();
+      buf.extend(
+        lines
+          .next()
+          .unwrap()
+          .split_ascii_whitespace()
+          .map(|n| n.parse::<usize>().unwrap()),
+      );
+      if matches!((a.len(), b.len()), (0, _) | (_, 0) if fail) {
+        return;
+      }
+      let [x, y] = buf[..] else { unreachable!() };
+      match p {
+        | A if b.remove(&(x, y)) =>
+          if b.is_empty() {
             p = B;
             t = pt;
             pt = 1;
-            fail = true;
+          } else {
+            pt += 1;
+            t = cmp::max(t, pt);
           },
-          | B if a.remove(&(x, y)) => {
-            if a.is_empty() {
-              p = A;
-              t = pt;
-              pt = 1;
-            } else {
-              pt += 1;
-              t = cmp::max(t, pt);
-            }
-            fail = false;
-          },
-          | B => {
+        | A => {
+          p = B;
+          t = pt;
+          pt = 1;
+          fail = true;
+        },
+        | B if a.remove(&(x, y)) =>
+          if a.is_empty() {
             p = A;
             t = pt;
             pt = 1;
-            fail = true;
+          } else {
+            pt += 1;
+            t = cmp::max(t, pt);
           },
-        }
-        if matches!((a.len(), b.len()), (0, _) | (_, 0) if fail) {
-          return ControlFlow::Break(());
-        }
-        ControlFlow::Continue(())
-      })
-      .into_value();
+        | B => {
+          p = A;
+          t = pt;
+          pt = 1;
+          fail = true;
+        },
+      }
+    });
     println!("{}", match (a.len(), b.len()) {
       | (1.., 1..) | (0, 0) => "draw",
       | (1.., 0) => "player one wins",

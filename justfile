@@ -3,14 +3,20 @@ set shell := ["fish", "-c"]
 
 alias r := run
 alias t := test
+alias s := show
 
 cargo := require("cargo")
 delta := require("delta")
 moor := require("moor")
-current_problem := "battleship"
-current_case := "sample.in"
-current_sol := "sample.ans"
-problem_dir := home_directory() / "Downloads"
+current-problem := "battleship"
+current-case := "sample.in"
+current-sol := "sample.ans"
+problem-dir := home_directory() / "Downloads"
+rust-version := "1.91.0"
+opts := append(prepend(replace_regex("-C target-cpu=native -C opt-level=3", '\s', '", "'), '"'), '"')
+cargo-opts := trim(f'''
+  +{{rust-version}} --config {{"'build.rustflags=[" + opts + "]'"}}
+''')
 
 [default]
 [private]
@@ -21,13 +27,23 @@ default:
 [arg("case", pattern='[[:alnum:][:punct:]]+')]
 [arg("host_dir", pattern='(/[[:alnum:][:punct:][:blank:]]+/?)+')]
 [arg("problem", pattern='[[:alpha:]]+')]
-run host_dir=problem_dir problem=current_problem case=current_case:
-    {{ cargo }} r --release -- <{{ host_dir / problem / case }}
+run host_dir=problem-dir problem=current-problem case=current-case:
+    {{ cargo }} {{ cargo-opts }} r --release 2> /dev/null -- <{{ host_dir / problem / case }}
 
 # runs the selected test case for the selected problem in the selected directory
 [arg("case", pattern='[[:alnum:][:punct:]]+')]
 [arg("case_sol", pattern='[[:alnum:][:punct:]]+')]
 [arg("host_dir", pattern='(/[[:alnum:][:punct:][:blank:]]*)+')]
 [arg("problem", pattern='[[:alpha:]]+')]
-test host_dir=problem_dir problem=current_problem case=current_case case_sol=current_sol:
-    {{ delta }} ({{ cargo }} r --release 2> /dev/null -- <{{ host_dir / problem / case }} | psub) ({{ moor }} {{ host_dir / problem / case_sol }} | psub)
+test host_dir=problem-dir problem=current-problem case=current-case case_sol=current-sol:
+    {{ delta }} ({{ cargo }} {{ cargo-opts }} r --release 2> /dev/null -- <{{ host_dir / problem / case }} | psub) ({{ moor }} {{ host_dir / problem / case_sol }} | psub)
+
+# outputs to stdout a slightly formatted sample test case and its solution
+[arg("case", pattern='[[:alnum:][:punct:]]+')]
+[arg("case_sol", pattern='[[:alnum:][:punct:]]+')]
+[arg("host_dir", pattern='(/[[:alnum:][:punct:][:blank:]]*)+')]
+[arg("problem", pattern='[[:alpha:]]+')]
+show host_dir=problem-dir problem=current-problem case=current-case case_sol=current-sol:
+    echo -e '---\nend test sample\n---' > ./__newline
+    -{{ moor }} (cat {{ host_dir / problem / case }} __newline {{ host_dir / problem / case_sol }} | psub)
+    rm ./__newline
