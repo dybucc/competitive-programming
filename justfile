@@ -44,6 +44,6 @@ test host_dir=problem-dir problem=current-problem case=current-case case_sol=cur
 [arg("host_dir", pattern='(/[[:alnum:][:punct:][:blank:]]*)+')]
 [arg("problem", pattern='[[:alpha:]]+')]
 show host_dir=problem-dir problem=current-problem case=current-case case_sol=current-sol:
-    echo -e '---\nend test sample\n---' > ./__newline
-    -{{ moor }} (cat {{ host_dir / problem / case }} __newline {{ host_dir / problem / case_sol }} | psub)
-    rm ./__newline
+    echo -e '---\nend test sample\n---' > ./.newline
+    -{{ moor }} (cat {{ host_dir / problem / case }} .newline {{ host_dir / problem / case_sol }} | psub)
+    rm ./.newline

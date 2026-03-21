@@ -5,6 +5,11 @@ use std::{
 };
 
 fn main() {
+  enum P {
+    A,
+    B,
+  }
+  use P::{A, B};
   let mut buf = String::new();
   io::stdin().read_to_string(&mut buf).unwrap();
   let (mut lines, mut buf, mut a, mut b) =
@@ -35,13 +40,12 @@ fn main() {
     }
     trav!(a);
     trav!(b);
-    enum P {
-      A,
-      B,
-    }
-    use P::*;
-    let (mut p, mut t, mut pt, mut fail) = (A, 1, 1, false);
+    let (mut player, mut max_turns, mut player_turn, mut fail) =
+      (A, 1, 1, false);
     (0..queries).for_each(|_| {
+      if matches!((a.len(), b.len()), (0, _) | (_, 0) if fail) {
+        return lines.next().map(|_| ()).unwrap();
+      }
       buf.clear();
       buf.extend(
         lines
@@ -50,40 +54,41 @@ fn main() {
           .split_ascii_whitespace()
           .map(|n| n.parse::<usize>().unwrap()),
       );
-      if matches!((a.len(), b.len()), (0, _) | (_, 0) if fail) {
-        return;
-      }
       let [x, y] = buf[..] else { unreachable!() };
-      match p {
+      match player {
         | A if b.remove(&(x, y)) =>
           if b.is_empty() {
-            p = B;
-            t = pt;
-            pt = 1;
+            player = B;
+            max_turns = player_turn;
+            player_turn = 1;
           } else {
-            pt += 1;
-            t = cmp::max(t, pt);
+            player_turn += 1;
+            max_turns = cmp::max(max_turns, player_turn);
           },
         | A => {
-          p = B;
-          t = pt;
-          pt = 1;
-          fail = true;
+          player = B;
+          max_turns = player_turn;
+          player_turn = 1;
+          if a.is_empty() {
+            fail = true;
+          }
         },
         | B if a.remove(&(x, y)) =>
           if a.is_empty() {
-            p = A;
-            t = pt;
-            pt = 1;
+            player = A;
+            max_turns = player_turn;
+            player_turn = 1;
           } else {
-            pt += 1;
-            t = cmp::max(t, pt);
+            player_turn += 1;
+            max_turns = cmp::max(max_turns, player_turn);
           },
         | B => {
-          p = A;
-          t = pt;
-          pt = 1;
-          fail = true;
+          player = A;
+          max_turns = player_turn;
+          player_turn = 1;
+          if b.is_empty() {
+            fail = true;
+          }
         },
       }
     });
