@@ -13,7 +13,8 @@ current-case := "sample.in"
 current-sol := "sample.ans"
 problem-dir := home_directory() / "Downloads"
 rust-version := "1.91.0"
-opts := append(prepend(replace_regex("-C target-cpu=native -C opt-level=3", '\s', '", "'), '"'), '"')
+opts := append(prepend(replace_regex('''
+    -C target-cpu=native -C opt-level=3''', '\s', '", "'), '"'), '"')
 cargo-opts := trim(f'''
   +{{rust-version}} --config {{"'build.rustflags=[" + opts + "]'"}}
 ''')
@@ -23,7 +24,7 @@ cargo-opts := trim(f'''
 default:
     {{ just_executable() }} --list --unsorted --justfile {{ justfile() }}
 
-# runs the program without testing it against any sample solution
+# runs the program without testing it against sample cases
 [arg("case", pattern='[[:alnum:][:punct:]]+')]
 [arg("host_dir", pattern='(/[[:alnum:][:punct:][:blank:]]+/?)+')]
 [arg("problem", pattern='[[:alpha:]]+')]
@@ -44,6 +45,6 @@ test host_dir=problem-dir problem=current-problem case=current-case case_sol=cur
 [arg("host_dir", pattern='(/[[:alnum:][:punct:][:blank:]]*)+')]
 [arg("problem", pattern='[[:alpha:]]+')]
 show host_dir=problem-dir problem=current-problem case=current-case case_sol=current-sol:
-    echo -e '---\nend test sample\n---' > ./.newline
+    echo -e '--- end test sample ---' > ./.newline
     -{{ moor }} (cat {{ host_dir / problem / case }} .newline {{ host_dir / problem / case_sol }} | psub)
     rm ./.newline

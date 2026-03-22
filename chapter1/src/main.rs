@@ -32,9 +32,7 @@ fn main() {
             .bytes()
             .enumerate()
             .filter(|(_, by)| *by == b'#')
-            .for_each(|(j, _)| {
-              $p.insert((j, i));
-            })
+            .for_each(|(j, _)| _ = $p.insert((j, i)))
         })
       }};
     }
@@ -43,7 +41,7 @@ fn main() {
     let (mut player, mut max_turns, mut player_turn, mut fail) =
       (A, 1, 1, false);
     (0..queries).for_each(|_| {
-      if matches!((a.len(), b.len()), (0, _) | (_, 0) if fail) {
+      if fail {
         return lines.next().map(|_| ()).unwrap();
       }
       buf.clear();
@@ -69,9 +67,7 @@ fn main() {
           player = B;
           max_turns = player_turn;
           player_turn = 1;
-          if a.is_empty() {
-            fail = true;
-          }
+          (a.is_empty()).then(|| fail = true);
         },
         | B if a.remove(&(x, y)) =>
           if a.is_empty() {
@@ -86,9 +82,7 @@ fn main() {
           player = A;
           max_turns = player_turn;
           player_turn = 1;
-          if b.is_empty() {
-            fail = true;
-          }
+          (b.is_empty()).then(|| fail = true);
         },
       }
     });
