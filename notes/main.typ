@@ -119,3 +119,53 @@ implementation is not going to put any thought into this, but secrete sample
 cases likely exploit the fact that the last number of turns that a player took
 must be repeated by the other player prior to determining a winner, irrespective
 of whether the last shot completely sank all of the other player's ships.
+
+The current implementation considers the above case, but is lacking in some
+respect. The problem statement seems ambiguous in its reach; It is said that
+each player ought have the same number of turns, but on special consideration is
+put into whether a game may end abruptly with one player having fewer turns than
+another player.
+
+This is made clear by some example test case whereby the sequence of shots is
+assumed to follow this correspondence:
++ Player 1 hits player 2
++ Player 1 hits player 2
+- Player 2 is left without any other vessels, so following the first point on
+  the number of consecutive turns that a player may take, player one is owed
+  another turn, even if no ships remain on its navy.
++ Player 1 falters.
++ Player 1 hits player 2
++ Player 1 hits player 2
++ Player 1 hits player 2
+- Player 2 follows up with another move on player 1, even if neither of them
+  have any ships left.
++ Player 2 falters.
+
+At this point, if we assume that player 2's ships have all been sinked, and thus
+control should be handed back to it, game rules dictate that its turn should be
+made up of at least three more turns. This should only really affect the time
+complexity of the implemented algorithm and not the final solution, for the
+problem is unaffected by further turns as no more ships remain on any one side.
+
+If we assume that game rules implicitly dictate that the only possibility for
+turn-taking expansions is that of accomplishing both initial requirements for
+turnextension, then surely there's a point where one players ought abandon the
+game without having taken the same set of turns, for otherwise a situation such
+as the above would easily take place.
+
+Resolution of such a situation would be non-trivial, especially considering the
+fact that if by the end, player 2 is bound to same number of turns as player 1,
+then surely player 1 is bound to the same number of turns as player 2. But that
+inherently goes against the rules for turn swapping between players, which
+dictate that no player ought hold the turn if #l-enum[they haven't hit the
+  opposing player, and][the other player has some ship left unsinked in its
+  navy.]
+
+If these rules held, then termination would be possible, for indeed only a
+single turn would be awarded to a player, a mercy turn of sorts; The rest would
+have to follow from that player having accomplished both requirements and thus
+have "won" the right to have another shot.
+
+This certainly implies that each player ought have at most one turn, and quite
+possibly that turns are not incremented by the number of shots that player may
+take at a time, but rather by the act of swapping from one player to another.

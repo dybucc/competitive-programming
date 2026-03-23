@@ -55,32 +55,30 @@ fn main() {
       let [x, y] = buf[..] else { unreachable!() };
       match player {
         | A if b.remove(&(x, y)) =>
-          if b.is_empty() {
+          if b.is_empty() && player_turn == max_turns {
             player = B;
-            max_turns = player_turn;
             player_turn = 1;
           } else {
             player_turn += 1;
             max_turns = cmp::max(max_turns, player_turn);
           },
+        | A if player_turn < max_turns => (),
         | A => {
           player = B;
-          max_turns = player_turn;
           player_turn = 1;
           (a.is_empty()).then(|| fail = true);
         },
         | B if a.remove(&(x, y)) =>
-          if a.is_empty() {
+          if a.is_empty() && player_turn == max_turns {
             player = A;
-            max_turns = player_turn;
             player_turn = 1;
           } else {
             player_turn += 1;
             max_turns = cmp::max(max_turns, player_turn);
           },
+        | B if player_turn < max_turns => (),
         | B => {
           player = A;
-          max_turns = player_turn;
           player_turn = 1;
           (b.is_empty()).then(|| fail = true);
         },
