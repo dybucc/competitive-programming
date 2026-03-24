@@ -145,27 +145,43 @@ At this point, if we assume that player 2's ships have all been sinked, and thus
 control should be handed back to it, game rules dictate that its turn should be
 made up of at least three more turns. This should only really affect the time
 complexity of the implemented algorithm and not the final solution, for the
-problem is unaffected by further turns as no more ships remain on any one side.
+problem is unaffected by further turns as no more ships remain on any one side
+(even though the time complexity here would be completely ruined.)
 
 If we assume that game rules implicitly dictate that the only possibility for
-turn-taking expansions is that of accomplishing both initial requirements for
-turnextension, then surely there's a point where one players ought abandon the
-game without having taken the same set of turns, for otherwise a situation such
-as the above would easily take place.
+turn-taking extensions is that of satisfying both initial requirements, then
+surely there's a point where one player ought abandon the game without having
+taken the same set of turns, for otherwise termination would never be reached.
 
 Resolution of such a situation would be non-trivial, especially considering the
 fact that if by the end, player 2 is bound to same number of turns as player 1,
 then surely player 1 is bound to the same number of turns as player 2. But that
 inherently goes against the rules for turn swapping between players, which
 dictate that no player ought hold the turn if #l-enum[they haven't hit the
-  opposing player, and][the other player has some ship left unsinked in its
+  opposing player, *and*][the other player has some ship left unsinked in its
   navy.]
 
 If these rules held, then termination would be possible, for indeed only a
-single turn would be awarded to a player, a mercy turn of sorts; The rest would
-have to follow from that player having accomplished both requirements and thus
-have "won" the right to have another shot.
+single turn would be awarded to a player, a "mercy turn" of sorts; The rest
+would have to follow from that player having satisfied both requirements and
+thus have "won" the right to have another shot.
 
 This certainly implies that each player ought have at most one turn, and quite
 possibly that turns are not incremented by the number of shots that player may
 take at a time, but rather by the act of swapping from one player to another.
+
+Turn-taking logic turned out to be unrequited, and indeed, all secert sample
+cases run without issues except the same failing subset as presented before. The
+issue must lie somewhere else, for otherwise one of the implemented strategies
+would've worked.
+
+The issue may be in a small detail from the second paragraph of the problem
+statement. It states that the second player may get another turn even if their
+entire navy is sunk, but my program assumed that to mean that any player is
+getting anothet turn so long as the opposing player either misses their last
+shot or otherwise sinks their entire navy and thus is forced to terminate their
+turn.
+
+But it seems like the only player that gets another turn even if its navy is
+fully sunk is player two, and not player one, were the latter to have all its
+ships sunk.

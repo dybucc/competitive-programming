@@ -1,5 +1,4 @@
 use std::{
-  cmp,
   collections::HashSet,
   io::{self, Read},
 };
@@ -38,8 +37,7 @@ fn main() {
     }
     trav!(a);
     trav!(b);
-    let (mut player, mut max_turns, mut player_turn, mut fail) =
-      (A, 1, 1, false);
+    let (mut player, mut fail) = (A, false);
     (0..queries).for_each(|_| {
       if fail {
         return lines.next().map(|_| ()).unwrap();
@@ -55,37 +53,25 @@ fn main() {
       let [x, y] = buf[..] else { unreachable!() };
       match player {
         | A if b.remove(&(x, y)) =>
-          if b.is_empty() && player_turn == max_turns {
+          if b.is_empty() {
             player = B;
-            player_turn = 1;
-          } else {
-            player_turn += 1;
-            max_turns = cmp::max(max_turns, player_turn);
           },
-        | A if player_turn < max_turns => (),
         | A => {
           player = B;
-          player_turn = 1;
           (a.is_empty()).then(|| fail = true);
         },
         | B if a.remove(&(x, y)) =>
-          if a.is_empty() && player_turn == max_turns {
+          if a.is_empty() {
             player = A;
-            player_turn = 1;
-          } else {
-            player_turn += 1;
-            max_turns = cmp::max(max_turns, player_turn);
           },
-        | B if player_turn < max_turns => (),
         | B => {
           player = A;
-          player_turn = 1;
           (b.is_empty()).then(|| fail = true);
         },
       }
     });
     println!("{}", match (a.len(), b.len()) {
-      | (1.., 1..) | (0, 0) => "draw",
+      | (0, 0) | (1.., 1..) => "draw",
       | (1.., 0) => "player one wins",
       | (0, 1..) => "player two wins",
     });

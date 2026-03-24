@@ -9,9 +9,9 @@ cargo := require("cargo")
 delta := require("delta")
 moor := require("moor")
 current-problem := "battleship"
-current-case := "sample-case.in"
-current-sol := "sample-case.ans"
-problem-dir := justfile_directory()
+current-case := "sample.in"
+current-sol := "sample.ans"
+problem-dir := home_directory() / "Downloads"
 rust-version := "1.91.0"
 opts := append(prepend(replace_regex('''
     -C target-cpu=native -C opt-level=3''', '\s', '", "'), '"'), '"')
