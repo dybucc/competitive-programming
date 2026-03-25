@@ -37,10 +37,10 @@ fn main() {
     }
     trav!(a);
     trav!(b);
-    let (mut player, mut fail) = (A, false);
+    let (mut player, mut done) = (A, false);
     (0..queries).for_each(|_| {
-      if fail {
-        return lines.next().map(|_| ()).unwrap();
+      if done {
+        return (_ = lines.next());
       }
       buf.clear();
       buf.extend(
@@ -52,22 +52,10 @@ fn main() {
       );
       let [x, y] = buf[..] else { unreachable!() };
       match player {
-        | A if b.remove(&(x, y)) =>
-          if b.is_empty() {
-            player = B;
-          },
-        | A => {
-          player = B;
-          (a.is_empty()).then(|| fail = true);
-        },
-        | B if a.remove(&(x, y)) =>
-          if a.is_empty() {
-            player = A;
-          },
-        | B => {
-          player = A;
-          (b.is_empty()).then(|| fail = true);
-        },
+        | A if b.remove(&(x, y)) => _ = b.is_empty().then(|| player = B),
+        | A => player = B,
+        | B if a.remove(&(x, y)) => _ = a.is_empty().then(|| done = true),
+        | B => _ = (player = A, b.is_empty().then(|| done = true)),
       }
     });
     println!("{}", match (a.len(), b.len()) {

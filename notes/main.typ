@@ -170,18 +170,82 @@ This certainly implies that each player ought have at most one turn, and quite
 possibly that turns are not incremented by the number of shots that player may
 take at a time, but rather by the act of swapping from one player to another.
 
-Turn-taking logic turned out to be unrequited, and indeed, all secert sample
+Turn-taking logic turned out to be unrequited, and indeed, all secret sample
 cases run without issues except the same failing subset as presented before. The
 issue must lie somewhere else, for otherwise one of the implemented strategies
-would've worked.
+would've worked differently, but they all seem to be aligned in experimental
+behavior.
 
 The issue may be in a small detail from the second paragraph of the problem
 statement. It states that the second player may get another turn even if their
 entire navy is sunk, but my program assumed that to mean that any player is
-getting anothet turn so long as the opposing player either misses their last
-shot or otherwise sinks their entire navy and thus is forced to terminate their
-turn.
+getting another turn if they sink the entire navy of the opposing player.
 
 But it seems like the only player that gets another turn even if its navy is
 fully sunk is player two, and not player one, were the latter to have all its
 ships sunk.
+
+The final solution should thus be to only ever allow switching players without
+trigerring the `fail` flag for input-only processing, upon reaching one of the
+existing states, but now only for player 1. That should allow reusing the same
+algorithm, but adding to it a slight change related to functionality once one of
+the current states where the `fail` flag is modified actually hits.
+
+This solved the problem.
+
+= Tic-tac-toe
+
+The problem seems to be akin to a simulation problem, except the simulation
+steps are not given. Instead, one is expected to either precompute all possible
+scenarios and evalute whether any one of them matches the end result, or
+otherwise perform an in-place simulation as data is read in.
+
+Clearly, there are no limits on the memory that may be used at once for the
+purposes of reading in some input data, as sample test cases per run have an
+upper bound of 150. For each of the sample cases, a single $3 times 3$ grid is
+layed out, which shouldn't put a constraint on reading in all of `stdin` at
+once.
+
+The issue then lies in determining whether the final scenario can be reached in
+a game of tic-tac-toe. The first thing that comes to mind is the possibility of
+using dynamic programming, and more specifically using a bottom-up approach
+where not all states are computed. This should allow considering the first of
+the pieces in the board, and compute the next set of possible states at that
+point. If the next movement that we read in from the input data set turns out to
+be one of the states we just computed, then the algorithm may *not* halt, and we
+can repeat the same operation. If the algorithm cannot determine which of the
+next-computed states is the one being considered next, then it should terminate.
+
+If the algorithm terminates prior to having processed the complete input for
+some sample test case, then it hasn't been capable of determining a possible
+scenario in tic-tac-toe that could be reached.
+
+Thinking it some more, maybe the solution is considerably trivial. If we
+consider instead that any one given situation is possible, so long as the number
+of `X` marked cells is only one unit smaller than the number of `O`-marked
+cells, then we can more simply determine whether the state can be reached or
+not.
+
+This would only hold true, though, beyond the first move in the game, for which
+the number of `X`-marked cells should be larger than the number of `O`-marked
+cells. Provided the algorithm accounts for the possibility of a length-1
+`X`-mark container alongside a length-0 `O`-mark container, then the above
+approach should still work just fine.
+
+To make matter easier, let us consider the different set of possible states
+under consideration.
+- Upon starting the game, the grid is empty and thus corresponds with a valid
+  state.
+- Upon the first player, namely the player marking cells with `X`, taking the
+  first turn, then the grid is left with a single `X`-marked cell.
+- Beyond this, the game can only be in one possible state, namely one where the
+  total number of `O`-marked cells is either equal or one unit strictly larger
+  than the number of `X`-marked cells.
+
+  The first of these situations would correspond with having finished player
+  `O`'s turn, and having player `X` turn come up next (i.e. the sample test case
+  corresponds with that of a snapshot right before player `X` is about to play.)
+
+  The latter situation would only take place if the "snapshot" of the test
+  sample where to be provided in the context of player `O` just having performed
+  its move, and player `X` being about to perform their own move.
