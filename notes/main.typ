@@ -225,7 +225,7 @@ scenario in tic-tac-toe that could be reached.
 
 Thinking it some more, maybe the solution is more trivial than it may seem at
 first glance. If we consider instead that any one given situation is possible,
-so long as the number of `X` marked cells is only one unit smaller than the
+so long as the number of `X`-marked cells is only one unit larger than the
 number of `O`-marked cells, then we can more simply determine whether the state
 can be reached or not by checking for the number of `X`- and `O`-marked cells in
 the grid under consideration.
@@ -236,11 +236,12 @@ like start game have a different layout than throughout the rest of the play.
 Let us thus consider the different set of possible states.
 - Upon starting the game, the grid is empty and thus corresponds with a valid
   state.
-- Upon the first player, namely the player marking cells with `X`, taking the
-  first turn, then the grid is left with a single `X`-marked cell.
-- Beyond this, the game can only be in one of two possible states; Namely, one
-  where the total number of `O`-marked cells is either equal, or one where it is
-  strictly one unit larger than the number of `X`-marked cells.
+- Upon the first player, namely the player marking cells with `X`, taking their
+  turn, the grid is left with a single, `X`-marked cell.
+- Beyond this, the game can only be in one of two possible states; One where the
+  total number of `O`-marked cells is equal to the number of `X`-marked cells,
+  or one where it is strictly one unit smaller than the number of `X`-marked
+  cells.
 
   The first of these situations would correspond with having finished player
   `O`'s turn, and having player `X`'s turn come up next (i.e. the sample test
@@ -254,13 +255,13 @@ Let us thus consider the different set of possible states.
 Upon further inspection, there's a possibility we haven't considered. Suppose an
 end game state is reached, where the number of `X`-marked cells is larger than
 the number of `O`-marked cells. At this point, no more states are valid, but the
-grid may or may have not been marked in its entirety. Assume it hasn't been
-filled to completion. At this point, a possible invalid state would be reached
-by adding another `O`-marked cell, which would correspond with one of the valid
-states, namely the one where player `O` has just performed its move. If we
-assume the current state to be the one showcased in the test sample, then by the
-above-enumerated rules, the grid would be deemed to be in an valid state, even
-when clearly it has gone past one possible end game state.
+grid may or may have not been marked in its entirety. Assume the latter
+scenario. A possible but invalid state would be reached by adding another
+`O`-marked cell, which would correspond with one of the valid states, namely the
+one where player `O` has just performed its move. If we assume the current state
+to be the one showcased in the test sample, then by the above-enumerated rules,
+the grid would be deemed to be in an valid state, even when clearly it has gone
+past end game.
 
 Solving this should be fairly simple; Keeping track of the marked locations for
 each player, and adding another check while processing the input data set for
@@ -269,8 +270,8 @@ of eight possible end-game arrangements because a $3 times 3$ grid only has 8
 different straight line sequences that could be filled by one of the two
 players.
 
-An ideal data structure to peform those lookups should be a hashset where a set
-of locations can be checked in $O(1)$. Because this set is comprised only of
-$8 times 3 = 24$ possible locations, and it is to be made only beyond start game
-state for upwards of 150 games, there should be no issues with performing
-$150 times 9 times 24 = 32,400$ lookups at worst.
+An ideal data structure to peform those lookups would be a hashset where a set
+of locations can be checked in $O(1)$. Because the locations to check are
+comprised of only $8 times 3 = 24$ elements, and it is to be made for upwards of
+150 games, there should be no issues with performing
+$150 times 24 times 2 = 7,200$ lookups at worst.
