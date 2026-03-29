@@ -8,9 +8,8 @@ fn main() {
   io::stdin().read_to_string(&mut buf).unwrap();
   let mut lines = buf.lines();
   let (mut a, mut b) = (HashSet::with_capacity(9), HashSet::with_capacity(9));
-  let games = lines.next().unwrap().parse::<usize>().unwrap();
-  (0..games).for_each(|_| {
-    (0..3_usize).for_each(|i| {
+  (0..lines.next().unwrap().parse::<usize>().unwrap()).for_each(|_| {
+    (0..3).for_each(|i| {
       lines.next().unwrap().bytes().enumerate().for_each(
         |(j, byte)| match byte {
           | b'X' => _ = a.insert((i, j)),
@@ -21,11 +20,8 @@ fn main() {
     });
     lines.next();
     println!("{}", match check(&a, &b) {
-      | (true, Some(w)) => match w {
-        | 0 if a.len() == b.len() + 1 => "yes",
-        | 1 if a.len() == b.len() => "yes",
-        | _ => "no",
-      },
+      | (true, Some(0)) if a.len() == b.len() + 1 => "yes",
+      | (true, Some(1)) if a.len() == b.len() => "yes",
       | (true, None) if a.len() == b.len() || a.len() == b.len() + 1 => "yes",
       | _ => "no",
     });
