@@ -275,3 +275,17 @@ of locations can be checked in $O(1)$. Because the locations to check are
 comprised of only $8 times 3 = 24$ elements, and it is to be made for upwards of
 150 games, there should be no issues with performing
 $150 times 24 times 2 = 7,200$ lookups at worst.
+
+The solution seems to be missing something. Either the algorithm is being too
+stringent in the allowed states, or it's missing some erroneous case. The
+problem is that the problem seems too simple; the only allowed states are those
+in which player `X` has the same number of occupied grid cells as player `O`, or
+otherwise has one more marked position. This is then stacked with the fact that
+if any one of `X` or `O` contain winning sets of positions larger than 1, the
+game has reached end game state.
+
+This latter condition is checked by first computing the cardinality of such
+sets, and then ensuring that they're either both 0, or that only _one_ of them
+is equal to one. This would align with the states corresponding with having no
+winner in the input grid, or with having a single winner, which would represent
+an end game state.
