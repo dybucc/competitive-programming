@@ -9,9 +9,9 @@ cargo := require("cargo")
 delta := require("delta")
 moor := require("moor")
 current-problem := "tictactoe2"
-current-case := "1.in"
-current-sol := "1.ans"
-problem-dir := home_directory() / "Downloads"
+current-case := "2.in"
+current-sol := "2.ans"
+problem-dir := justfile_directory()
 rust-version := "1.91.0"
 opts := append(prepend(replace_regex('''
     -C target-cpu=native -C opt-level=3''', '\s', '", "'), '"'), '"')
@@ -31,7 +31,7 @@ default:
 [arg("problem", pattern='[[:ascii:]]+')]
 [no-cd]
 run host_dir=problem-dir problem=current-problem case=current-case nightly='0':
-    {{ if nightly == "0" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r --release 2> /dev/null -- <{{ host_dir / problem / case }}
+    {{ if nightly == "1" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r --release 2> /dev/null -- <{{ host_dir / problem / case }}
 
 # runs the selected test case for the selected problem in the selected directory
 [arg("case", pattern='[[:ascii:]]+')]
