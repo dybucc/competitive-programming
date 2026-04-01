@@ -24,22 +24,39 @@ fn main() {
       | ControlFlow::Break(()) =>
         (println!("no"), lines.next(), a.clear(), b.clear()),
       | _ => (
-        println!("{}", match WIN_POS.iter().fold(
+        println!("{}", match WIN_POS.iter().try_fold(
           (0, 0),
-          |(mut a_wins, mut b_wins), [c0, c1, c2]| {
-            (
-              (a.contains(c0) && a.contains(c1) && a.contains(c2))
-                .then(|| a_wins += 1),
-              (b.contains(c0) && b.contains(c1) && b.contains(c2))
-                .then(|| b_wins += 1),
-              (a_wins, b_wins),
+          |(mut a_wins, mut b_wins), c| {
+            ControlFlow::Continue(
+              match c.iter().enumerate().fold(
+                ([false; 3], [false; 3]),
+                |(mut a_c, mut b_c), (i, c)| match i {
+                  | 0..3 => (
+                    (a_c[i] = a.contains(c), a_c).1,
+                    (b_c[i] = b.contains(c), b_c).1,
+                  ),
+                  | _ => unreachable!(),
+                },
+              ) {
+                | ([true, true, true], [false, false, false]) =>
+                  (a_wins += 1, (a_wins, b_wins)),
+                | ([false, false, false], [true, true, true]) =>
+                  (b_wins += 1, (a_wins, b_wins)),
+                | ([false, false, false], [false, false, false]) =>
+                  ((), (a_wins, b_wins)),
+                | _ => return ControlFlow::Break(()),
+              }
+              .1,
             )
-              .2
           }
         ) {
-          | (1, 0) if a.len() == b.len() + 1 => "yes",
-          | (0, 1) if a.len() == b.len() => "yes",
-          | (0, 0) if a.len() == b.len() || a.len() == b.len() + 1 => "yes",
+          | ControlFlow::Continue((1, 0)) if a.len() == b.len() + 1 => "yes",
+          | ControlFlow::Continue((0, 1)) if a.len() == b.len() => "yes",
+          | ControlFlow::Continue((0, 0))
+            if matches!(
+              a.len(), n if n == b.len() || n == b.len() + 1
+            ) =>
+            "yes",
           | _ => "no",
         }),
         lines.next(),
