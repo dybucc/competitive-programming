@@ -1,22 +1,36 @@
 #![feature(try_with_capacity)]
 
-pub(crate) mod build_error;
+pub(crate) mod errors;
 
-pub(crate) use build_error::BuildError;
+use std::{cmp::Ordering, mem::MaybeUninit};
+
+#[doc(inline)]
+pub use crate::errors::BuildError;
 
 #[derive(Debug, Default, Clone)]
-pub(crate) struct SegmentTree<T>(Vec<T>);
+pub struct SegmentTree<T>(pub(crate) Vec<T>);
 
-/// # Panics
+/// # Errors
 ///
-/// Panics if some internal allocation fails.
-impl<T, A: Into<T>> From<Vec<A>> for SegmentTree<T> {
-  fn from(value: Vec<A>) -> Self { Self::new(value).unwrap() }
+/// Fails if some auxiilary allocation fails.
+impl<T, A: Into<T>> TryFrom<Vec<A>> for SegmentTree<T> {
+  type Error = BuildError;
+
+  fn try_from(value: Vec<A>) -> Result<Self, Self::Error> { Self::new(value) }
+}
+
+/// # Errors
+///
+/// Fails if some auxiliary allocation fails.
+impl<T, A: Into<T>, const N: usize> TryFrom<[A; N]> for SegmentTree<T> {
+  type Error = BuildError;
+
+  fn try_from(value: [A; N]) -> Result<Self, Self::Error> { Self::new(value) }
 }
 
 /// # Panics
 ///
-/// Panics if some internal allocation fails.
+/// Panics if some auxiliary allocation fails.
 impl<T, A: Into<T>> FromIterator<A> for SegmentTree<T> {
   fn from_iter<I: IntoIterator<Item = A>>(iter: I) -> Self {
     Self::new(iter).unwrap()
@@ -24,15 +38,41 @@ impl<T, A: Into<T>> FromIterator<A> for SegmentTree<T> {
 }
 
 impl<T> SegmentTree<T> {
-  /// Creates a new segment tree.
+  /// Creates a new segment tree from an iterable, assumming there is a defined
+  /// iteration order.
   ///
   /// # Errors
   ///
-  /// If some internal allocation fails, this returns `Err`.
-  fn new(input: impl IntoIterator<Item: Into<T>>) -> Result<Self, BuildError> {
-    let mut out =
-      Vec::try_with_capacity(input.into_iter().count().next_power_of_two())?;
+  /// Fails if some auxiliary allocation fails.
+  pub fn new(
+    input: impl IntoIterator<Item: Into<T>>,
+  ) -> Result<Self, BuildError> {
+    Some(2 * input.into_iter().count().next_power_of_two())
+      .map(|len| {
+        (
+          len,
+          Vec::try_with_capacity(len).map(|mut out| {
+            (out.resize_with(len, || MaybeUninit::uninit()), out).1
+          }),
+        )
+      })
+      .into_iter()
+      .try_fold(Vec::new(), |_, (len, out)| {
+        out.map(|mut out| (build((&mut out, input), 0, (0, len)), out).1)
+      })
+      .map(Self)
+      .map_err(|_| BuildError::AuxiliaryAlloc)
+  }
+}
 
-    Ok(Self(out))
+pub(crate) fn build<T>(
+  (tree, array): (&mut [MaybeUninit<T>], impl IntoIterator<Item: Into<T>>),
+  p: usize,
+  (l, r): (usize, usize),
+) {
+  match l.cmp(&r) {
+    | Ordering::Equal => tree.get_mut(p).map(|p| p.write(val)),
+    | Ordering::Less => todo!(),
+    | Ordering::Greater => todo!(),
   }
 }

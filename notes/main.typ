@@ -289,3 +289,16 @@ sets, and then ensuring that they're either both 0, or that only _one_ of them
 is equal to one. This would align with the states corresponding with having no
 winner in the input grid, or with having a single winner, which would represent
 an end game state.
+
+It's quite possible that the problem is actually expecting the algorithm to
+perform extensive input validation. This is likely because the initial problem
+statement mentions the set of conditions that make a game valid, among which we
+find the grid size. This is not further remarked in the input description, which
+may mean that the one case that is not being handled is the possibility for the
+grid to be smaller than the expected $3 times 3$ grid. This is the only real
+case that the current solution is not taking into consideration.
+
+But it turns out that is not the right approach either. The current
+implementation performs complete input validation, except for row number
+validation because this is actually always accurate based on the input
+description. This issue must lie somewhere else.
