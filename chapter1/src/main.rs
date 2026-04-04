@@ -38,36 +38,42 @@ fn main() {
                 (println!("no"), lines.next(), a.clear(), b.clear()),
               | _ => (
                 println!("{}", match WIN_POS.iter().try_fold(
-                  (0, 0),
-                  |(mut a_wins, mut b_wins), c| {
+                  [0; 2],
+                  |[mut a_wins, mut b_wins], c| {
                     ControlFlow::Continue(
-                      match c.iter().enumerate().fold(
-                        ([false; 3], [false; 3]),
-                        |(mut a_c, mut b_c), (i, c)| match i {
-                          | ..3 => (
-                            (a_c[i] = a.contains(c), a_c).1,
-                            (b_c[i] = b.contains(c), b_c).1,
-                          ),
-                          | _ => unreachable!(),
-                        },
+                      match (
+                        c.iter().enumerate().fold(
+                          [[false; 3]; 2],
+                          |[mut a_c, mut b_c], (i, c)| match i {
+                            | ..3 => [
+                              (a_c[i] = a.contains(c), a_c).1,
+                              (b_c[i] = b.contains(c), b_c).1,
+                            ],
+                            | _ => unreachable!(),
+                          },
+                        ),
+                        (a_wins, b_wins),
                       ) {
-                        | (a, b) if a.iter().zip(b).all(|(&a, b)| a && !b) =>
-                          (a_wins += 1, (a_wins, b_wins)),
-                        | (a, b) if a.iter().zip(b).all(|(&a, b)| !a && b) =>
-                          (b_wins += 1, (a_wins, b_wins)),
-                        | (a, b) if a.iter().zip(b).all(|(&a, b)| !(a && b)) =>
-                          ((), (a_wins, b_wins)),
+                        | ([a, b], (0, 0))
+                          if a.iter().zip(b).all(|(&a, b)| a && !b) =>
+                          (a_wins += 1, [a_wins, b_wins]),
+                        | ([a, b], (0, 0))
+                          if a.iter().zip(b).all(|(&a, b)| !a && b) =>
+                          (b_wins += 1, [a_wins, b_wins]),
+                        | ([a, b], _)
+                          if a.iter().zip(b).all(|(&a, b)| !(a && b)) =>
+                          ((), [a_wins, b_wins]),
                         | _ => return ControlFlow::Break(()),
                       }
                       .1,
                     )
                   }
                 ) {
-                  | ControlFlow::Continue((1, 0)) if a.len() == b.len() + 1 =>
+                  | ControlFlow::Continue([1, 0]) if a.len() == b.len() + 1 =>
                     "yes",
-                  | ControlFlow::Continue((0, 1)) if a.len() == b.len() =>
+                  | ControlFlow::Continue([0, 1]) if a.len() == b.len() =>
                     "yes",
-                  | ControlFlow::Continue((0, 0))
+                  | ControlFlow::Continue([0, 0])
                     if a.len() == b.len() || a.len() == b.len() + 1 =>
                     "yes",
                   | _ => "no",

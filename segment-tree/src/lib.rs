@@ -2,7 +2,7 @@
 
 pub(crate) mod errors;
 
-use std::{cmp::Ordering, mem::MaybeUninit};
+use std::{cmp::Ordering, iter, mem::MaybeUninit};
 
 #[doc(inline)]
 pub use crate::errors::BuildError;
@@ -38,8 +38,8 @@ impl<T, A: Into<T>> FromIterator<A> for SegmentTree<T> {
 }
 
 impl<T> SegmentTree<T> {
-  /// Creates a new segment tree from an iterable, assumming there is a defined
-  /// iteration order.
+  /// Creates a new segment tree from an iterable, assumming there is a well
+  /// defined iteration order.
   ///
   /// # Errors
   ///
@@ -47,7 +47,7 @@ impl<T> SegmentTree<T> {
   pub fn new(
     input: impl IntoIterator<Item: Into<T>>,
   ) -> Result<Self, BuildError> {
-    Some(2 * input.into_iter().count().next_power_of_two())
+    iter::once(2 * input.into_iter().count().next_power_of_two())
       .map(|len| {
         (
           len,
@@ -56,11 +56,8 @@ impl<T> SegmentTree<T> {
           }),
         )
       })
-      .into_iter()
-      .try_fold(Vec::new(), |_, (len, out)| {
-        out.map(|mut out| (build((&mut out, input), 0, (0, len)), out).1)
-      })
-      .map(Self)
+      .try_fold(Vec::new(), |mut output, (len, mut out)| out)
+      .map(|output| Self(output))
       .map_err(|_| BuildError::AuxiliaryAlloc)
   }
 }

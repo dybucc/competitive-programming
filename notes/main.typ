@@ -302,3 +302,27 @@ But it turns out that is not the right approach either. The current
 implementation performs complete input validation, except for row number
 validation because this is actually always accurate based on the input
 description. This issue must lie somewhere else.
+
+The problem has finally been solved and it was not an _Eureka_ nor a _Hmm,
+that's funny_ moment (meaning it did not come from a one-off idea nor a long
+session of work, but rather of a (possibly idiotic) refactoring.) The solution
+is odd, as it surged merely from an attempt to further "functionalize" my code
+(make it beautifully functional and code-golfy.) The solution seemed to be in
+performing further input validation, such that by the time the program was
+performing parsing of possible winning positions, the algorithm should've
+exitted early as soon as more than a single winning position was reached
+(regardless of the player that had reached such a position.)
+
+This aligns with the initial algorithm design that performed a similar input
+validation at a later stage to check that a state beyond end game was not being
+considered possible. The reason why (I, as of writing this, believe) this
+refactoring shouldn't have yield the correct solution is that such a check was
+already being performed right after parsing all winning positions (ensuring only
+that both players couldn't have gotten winning positions.) This should've been
+caught at the stage where pattern matching makes sure the ratio of winning
+positions for player `X` is 1 against 0 from player `O`, or the other way
+around. But it didn't seem to catch on, and as it turns out, the solution was in
+performing a full lazy evaluation of the input sample, by breaking early out of
+the winning position parsing stage as soon as a win event was determined to have
+taken place (irrespective of player) after another win was determined to have
+already taken place in the pattern-matching state machine.
