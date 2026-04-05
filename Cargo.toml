@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["chapter1", "segment-tree"]
+members = ["chapter1", "chapter2", "segment-tree"]
 
 [workspace.lints.clippy]
 pedantic = "warn"

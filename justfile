@@ -8,11 +8,11 @@ alias s := show
 cargo := require("cargo")
 delta := require("delta")
 moor := require("moor")
-current-problem := "tictactoe2"
-current-case := "2.in"
-current-sol := "2.ans"
-problem-dir := justfile_directory()
-rust-version := "1.91.0"
+current-problem := "divideby100"
+current-case := "divideby100-01.in"
+current-sol := "divideby100-01.ans"
+problem-dir := home_directory() / "Downloads"
+rust-version := "1.94.0"
 opts := append(prepend(replace_regex('''
     -C target-cpu=native -C opt-level=3''', '\s', '", "'), '"'), '"')
 cargo-opts := trim(f'''

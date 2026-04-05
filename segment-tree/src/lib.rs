@@ -1,4 +1,4 @@
-#![feature(try_with_capacity)]
+#![feature(try_with_capacity, iterator_try_reduce)]
 
 pub(crate) mod errors;
 
@@ -28,16 +28,10 @@ impl<T, A: Into<T>, const N: usize> TryFrom<[A; N]> for SegmentTree<T> {
   fn try_from(value: [A; N]) -> Result<Self, Self::Error> { Self::new(value) }
 }
 
-/// # Panics
-///
-/// Panics if some auxiliary allocation fails.
-impl<T, A: Into<T>> FromIterator<A> for SegmentTree<T> {
-  fn from_iter<I: IntoIterator<Item = A>>(iter: I) -> Self {
-    Self::new(iter).unwrap()
-  }
-}
-
 impl<T> SegmentTree<T> {
+  // TODO: implement a less efficient `new` that does not require the
+  // `ExactSizeIterator` bound on the input iterable's iterator.
+
   /// Creates a new segment tree from an iterable, assumming there is a well
   /// defined iteration order.
   ///
@@ -45,20 +39,26 @@ impl<T> SegmentTree<T> {
   ///
   /// Fails if some auxiliary allocation fails.
   pub fn new(
-    input: impl IntoIterator<Item: Into<T>>,
+    input: impl IntoIterator<Item: Into<T>, IntoIter: ExactSizeIterator>,
   ) -> Result<Self, BuildError> {
-    iter::once(2 * input.into_iter().count().next_power_of_two())
-      .map(|len| {
+    match iter::once(input.into_iter())
+      .map(|iter| {
         (
-          len,
-          Vec::try_with_capacity(len).map(|mut out| {
-            (out.resize_with(len, || MaybeUninit::uninit()), out).1
+          Vec::try_with_capacity(iter.len()).map(|mut out| {
+            (out.resize_with(iter.len(), MaybeUninit::uninit), out).1
           }),
+          iter,
         )
       })
-      .try_fold(Vec::new(), |mut output, (len, mut out)| out)
-      .map(|output| Self(output))
-      .map_err(|_| BuildError::AuxiliaryAlloc)
+      .next()
+    {
+      | Some((Ok(mut out), mut iter)) => todo!(
+        "destructure `out` into raw components and perform `build` logic with \
+         the raw pointer and length"
+      ),
+      | Some((Err(_), _)) => Err(BuildError::AuxiliaryAlloc),
+      | _ => unreachable!(),
+    }
   }
 }
 
