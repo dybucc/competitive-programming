@@ -1,19 +1,21 @@
-#![feature(try_with_capacity, iterator_try_reduce, box_vec_non_null)]
+#![feature(allocator_api)]
+
+use std::{cmp::Ordering, iter, mem::MaybeUninit, ops::Range};
+
+use itertools::Itertools;
 
 pub(crate) mod errors;
-
-use std::{cmp::Ordering, iter, mem::MaybeUninit};
 
 #[doc(inline)]
 pub use crate::errors::BuildError;
 
 #[derive(Debug, Default, Clone)]
-pub struct SegmentTree<T>(pub(crate) Vec<T>);
+pub struct SegmentTree<T: Ord>(pub(crate) Vec<T>);
 
 /// # Errors
 ///
 /// Fails if some auxiliary allocation fails.
-impl<T, A: Into<T>> TryFrom<Vec<A>> for SegmentTree<T> {
+impl<T: Ord, A: Into<T>> TryFrom<Vec<A>> for SegmentTree<T> {
   type Error = BuildError;
 
   fn try_from(value: Vec<A>) -> Result<Self, Self::Error> { Self::new(value) }
@@ -22,13 +24,44 @@ impl<T, A: Into<T>> TryFrom<Vec<A>> for SegmentTree<T> {
 /// # Errors
 ///
 /// Fails if some auxiliary allocation fails.
-impl<T, A: Into<T>, const N: usize> TryFrom<[A; N]> for SegmentTree<T> {
+impl<T: Ord, A: Into<T>, const N: usize> TryFrom<[A; N]> for SegmentTree<T> {
   type Error = BuildError;
 
   fn try_from(value: [A; N]) -> Result<Self, Self::Error> { Self::new(value) }
 }
 
-impl<T> SegmentTree<T> {
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum NewIter<T: Ord> {
+  Some(T),
+  None,
+}
+
+impl From<NewIter<T> >for NewIter<T> {
+
+}
+
+impl<T: Ord,A:Into<T>> From<A> for NewIter<T> {
+  fn from(value: A) -> Self { Self::Some(value.into()) }
+}
+
+impl<T: Ord> PartialOrd for NewIter<T> {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    self.cmp(other).into()
+  }
+}
+
+impl<T: Ord> Ord for NewIter<T> {
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    match (self, other) {
+      | (Self::Some(value1), Self::Some(value2)) => value1.cmp(value2),
+      | (Self::Some(_), Self::None) => Ordering::Less,
+      | (Self::None, Self::Some(_)) => Ordering::Greater,
+      | (Self::None, Self::None) => Ordering::Equal,
+    }
+  }
+}
+
+impl<T: Ord> SegmentTree<T> {
   // TODO: implement a less efficient `new` that does not require the
   // `ExactSizeIterator` bound on the input iterable's iterator. Implement as
   // the method of the `FromIterator` trait, so that that trait impl is
@@ -47,35 +80,29 @@ impl<T> SegmentTree<T> {
     match iter::once(input.into_iter())
       .map(|iter| {
         (
-          Vec::try_with_capacity(iter.len()).map(|mut out| {
-            (out.resize_with(iter.len(), MaybeUninit::<T>::uninit), out).1
-          }),
-          iter,
+          Box::try_new_uninit_slice(iter.len().next_power_of_two()),
+          iter.map_into::<NewIter<T>(),
+          iter.len(),
         )
       })
       .next()
     {
-      | Some((Ok(tree), array)) => {
-        iter::once(tree.into_parts()).map(|(ptr, len, cap)| {
-          // casting to a slice may not be feasible because the methods in std
-          // don't seem to consider it sound to mutate the slice
-        });
-        todo!()
-      },
-      | Some((Err(_), _)) => Err(BuildError::AuxiliaryAlloc),
+      | Some((Ok(mut tree), array, len)) => Ok(Self(
+        (build((&mut tree, array), 0, 0..len), unsafe {
+          tree.assume_init().into_vec()
+        })
+          .1,
+      )),
+      | Some((Err(_), ..)) => Err(BuildError::AuxiliaryAlloc),
       | _ => unreachable!(),
     }
   }
 }
 
-pub(crate) fn build<T>(
-  (tree, array): (&mut [MaybeUninit<T>], impl IntoIterator<Item: Into<T>>),
+pub(crate) fn build<T: Ord>(
+  (tree, array): (&mut [MaybeUninit<T>], impl IntoIterator<Item = NewIter<T>>),
   p: usize,
-  (l, r): (usize, usize),
+  r: Range<usize>,
 ) {
-  match l.cmp(&r) {
-    | Ordering::Equal => tree.get_mut(p).map(|p| p.write(val)),
-    | Ordering::Less => todo!(),
-    | Ordering::Greater => todo!(),
-  }
+  todo!()
 }
