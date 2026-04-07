@@ -1,20 +1,32 @@
 use std::{
   cmp::Ordering,
-  io::{self, BufRead, ErrorKind, Read},
+  collections::VecDeque,
+  io::{self, ErrorKind, Read},
   iter,
 };
 
 fn main() {
-  match iter::once((io::stdin().lock(), String::new()))
-    .map(|(mut stdin, mut buf)| (stdin.read_line(&mut buf), (stdin, buf)).1)
+  match iter::once((io::stdin().lock(), Vec::with_capacity(1), VecDeque::new()))
+    .map(|(mut stdin, mut buf, mut n)| {
+      (
+        buf.resize(1, 0),
+        loop {
+          match match stdin.read_exact(&mut buf).map_err(|e| e.kind()) {
+            | Err(ErrorKind::UnexpectedEof) => (buf.clear(), None).1,
+            | Err(_) => panic!(),
+            | _ => buf.first().copied(),
+          } {
+            | Some(byte) => (n.push_back(byte), buf.clear()).1,
+            | _ => break buf.clear(),
+          }
+        },
+        (stdin, buf, n),
+      )
+        .2
+    })
     .next()
   {
-    | Some((mut stdin, n)) => iter::once(
-      iter::once(())
-        .fold(Vec::with_capacity(1), |mut buf, _| (buf.resize(1, 0), buf).1),
-    )
-    .cycle()
-    .try_for_each(|mut buf| {
+    | Some((mut stdin, mut buf, n)) => loop {
       match match stdin.read_exact(&mut buf).map_err(|e| e.kind()) {
         | Err(ErrorKind::UnexpectedEof) => (_ = buf.pop(), None).1,
         | Err(_) => panic!(),
@@ -24,7 +36,7 @@ fn main() {
         | Some(_) => todo!(),
         | None => todo!(),
       }
-    }),
+    },
     | _ => unreachable!(),
   };
 

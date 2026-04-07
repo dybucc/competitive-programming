@@ -326,3 +326,25 @@ performing a full lazy evaluation of the input sample, by breaking early out of
 the winning position parsing stage as soon as a win event was determined to have
 taken place (irrespective of player) after another win was determined to have
 already taken place in the pattern-matching state machine.
+
+= Divide by 100
+
+The problem is fairly simple, but making it time-efficient is a bit tricky.
+Initially, the algorithm attempted to perform a linear scan over both inputs,
+namely $N$ and $M$. This makes sense for the former, as we always require
+knowing which number we're working with, and indeed, there is no non-trivial way
+of determining the number of trailing zeroes in $N$ without performing a linear
+scan over its digits. However, the same cannot be said for $M$. In this
+instance, we can perform a parallel read between the input bytes of this number
+and the bytes of $N$ such that string processing happens as input is read. This
+should also allow, in some worst-case scenarios, to avoid a buffer overflow due
+to the extreme upper bound set in the problem statement for $M$.
+
+Currently, implementation efforts are focused on having the internal buffer for
+$N$ be a double-ended queue, such that we can perform efficient push and pop
+operations on both ends of the buffer, as we may need to both add leading zeroes
+and add a leading dot to the number, depending on the number of zeroes in $M$.
+Combining the mandatory linear scan over $M$ with parllel insertions at the
+front and back of the buffer for $N$ should allow us to perform the necessary
+string processing efficiently, and thus solve the problem within the time limits
+that the initial submittion failed to meet.
