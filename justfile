@@ -25,13 +25,12 @@ default:
     {{ just_executable() }} --list --unsorted --justfile {{ justfile() }}
 
 # runs the program without testing it against sample cases
-[arg("case", pattern='[[:ascii:]]+')]
-[arg("host_dir", pattern='(/[[:ascii:]]+/?)+')]
+[arg("err", pattern='0|1')]
 [arg("nightly", pattern='0|1')]
-[arg("problem", pattern='[[:ascii:]]+')]
 [no-cd]
-run host_dir=problem-dir problem=current-problem case=current-case nightly='0':
-    {{ if nightly == "1" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r --release 2> /dev/null -- <{{ host_dir / problem / case }}
+[no-quiet]
+run nightly='0' err='1':
+    {{ if nightly == "1" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r --release {{ if err == "0" { "" } else { "2> /dev/null" } }} -- <{{ problem-dir / current-problem / current-case }}
 
 # runs the selected test case for the selected problem in the selected directory
 [arg("case", pattern='[[:ascii:]]+')]
