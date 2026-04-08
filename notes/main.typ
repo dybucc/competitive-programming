@@ -327,6 +327,8 @@ the winning position parsing stage as soon as a win event was determined to have
 taken place (irrespective of player) after another win was determined to have
 already taken place in the pattern-matching state machine.
 
+#pagebreak()
+
 = Divide by 100
 
 The problem is fairly simple, but making it time-efficient is a bit tricky.
@@ -344,7 +346,7 @@ Currently, implementation efforts are focused on having the internal buffer for
 $N$ be a double-ended queue, such that we can perform efficient push and pop
 operations on both ends of the buffer, as we may need to both add leading zeroes
 and add a leading dot to the number, depending on the number of zeroes in $M$.
-Combining the mandatory linear scan over $M$ with parllel insertions at the
+Combining the mandatory linear scan over $M$ with parallel insertions at the
 front and back of the buffer for $N$ should allow us to perform the necessary
 string processing efficiently, and thus solve the problem within the time limits
 that the initial submittion failed to meet.

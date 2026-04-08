@@ -1,6 +1,6 @@
 #![feature(allocator_api)]
 
-use std::{cmp::Ordering, iter, mem::MaybeUninit, ops::Range};
+use std::{cmp::Ordering, iter, mem::MaybeUninit, ops::{Not, Range}};
 
 use itertools::Itertools;
 
@@ -36,12 +36,8 @@ pub(crate) enum NewIter<T: Ord> {
   None,
 }
 
-impl From<NewIter<T> >for NewIter<T> {
-
-}
-
-impl<T: Ord,A:Into<T>> From<A> for NewIter<T> {
-  fn from(value: A) -> Self { Self::Some(value.into()) }
+impl<T: Ord> From<T> for NewIter<T> {
+  fn from(value: T) -> Self { Self::Some(value) }
 }
 
 impl<T: Ord> PartialOrd for NewIter<T> {
@@ -51,7 +47,7 @@ impl<T: Ord> PartialOrd for NewIter<T> {
 }
 
 impl<T: Ord> Ord for NewIter<T> {
-  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+  fn cmp(&self, other: &Self) -> Ordering {
     match (self, other) {
       | (Self::Some(value1), Self::Some(value2)) => value1.cmp(value2),
       | (Self::Some(_), Self::None) => Ordering::Less,
@@ -79,15 +75,16 @@ impl<T: Ord> SegmentTree<T> {
   ) -> Result<Self, BuildError> {
     match iter::once(input.into_iter())
       .map(|iter| {
-        (
-          Box::try_new_uninit_slice(iter.len().next_power_of_two()),
-          iter.map_into::<NewIter<T>(),
-          iter.len(),
-        )
+        (Box::try_new_uninit_slice(iter.len().next_power_of_two()), unsafe {
+          iter::once(iter.map_into::<T>().map_into())
+            .map(|iter| (
+              iter.len().is_power_of_two().not().then(|| iter.len().next_power_of_two()).unwrap_or(iter.len()),
+              iter::once(iter.len()).map(|len| iter.chain(iter::repeat_with(|| NewIter::None).take(len.next_power_of_two() - len))).next().unwrap_unchecked()
+            ))
       })
       .next()
     {
-      | Some((Ok(mut tree), array, len)) => Ok(Self(
+      | Some((Ok(mut tree), (len, array))) => Ok(Self(
         (build((&mut tree, array), 0, 0..len), unsafe {
           tree.assume_init().into_vec()
         })
