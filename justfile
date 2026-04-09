@@ -9,8 +9,8 @@ cargo := require("cargo")
 delta := require("delta")
 moor := require("moor")
 current-problem := "divideby100"
-current-case := "divideby100-01.in"
-current-sol := "divideby100-01.ans"
+current-case := "divideby100-04.in"
+current-sol := "divideby100-04.ans"
 problem-dir := home_directory() / "Downloads"
 rust-version := "1.94.0"
 opts := append(prepend(replace_regex('''
@@ -28,26 +28,17 @@ default:
 [arg("err", pattern='0|1')]
 [arg("nightly", pattern='0|1')]
 [no-cd]
-[no-quiet]
-run nightly='0' err='1':
-    {{ if nightly == "1" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r --release {{ if err == "0" { "" } else { "2> /dev/null" } }} -- <{{ problem-dir / current-problem / current-case }}
+run nightly='0' err='0':
+    {{ if nightly == "1" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r --release {{ if err == "1" { "" } else { "2> /dev/null" } }} -- <{{ problem-dir / current-problem / current-case }}
 
-# runs the selected test case for the selected problem in the selected directory
-[arg("case", pattern='[[:ascii:]]+')]
-[arg("case_sol", pattern='[[:ascii:]]+')]
-[arg("host_dir", pattern='(/[[:ascii:]]+/?)+')]
-[arg("problem", pattern='[[:ascii:]]+')]
+# runs the current test case for the current problem
 [no-cd]
-test host_dir=problem-dir problem=current-problem case=current-case case_sol=current-sol:
-    {{ delta }} ({{ cargo }} {{ cargo-opts }} r --release 2> /dev/null -- <{{ host_dir / problem / case }} | psub) ({{ moor }} {{ host_dir / problem / case_sol }} | psub)
+test:
+    {{ delta }} ({{ cargo }} {{ cargo-opts }} r --release 2> /dev/null -- <{{ problem-dir / current-problem / current-case }} | psub) ({{ moor }} {{ problem-dir / current-problem / current-sol }} | psub)
 
 # outputs to stdout a slightly formatted sample test case and its solution
-[arg("case", pattern='[[:ascii:]]+')]
-[arg("case_sol", pattern='[[:ascii:]]+')]
-[arg("host_dir", pattern='(/[[:ascii:]]+/?)+')]
-[arg("problem", pattern='[[:ascii:]]+')]
 [no-cd]
-show host_dir=problem-dir problem=current-problem case=current-case case_sol=current-sol:
+show:
     echo -e '--- end test sample ---' > ./.newline
-    -{{ moor }} (cat {{ host_dir / problem / case }} .newline {{ host_dir / problem / case_sol }} | psub)
+    -{{ moor }} (cat {{ problem-dir / current-problem / current-case }} .newline {{ problem-dir / current-problem / current-sol }} | psub)
     rm ./.newline

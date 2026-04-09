@@ -1,5 +1,5 @@
 [toolchain]
-channel = "nightly"
+channel = "nightly-2026-04-01"
 profile = "minimal"
 components = [
   "cargo",
