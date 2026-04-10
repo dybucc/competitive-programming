@@ -13,6 +13,5 @@ use_try_shorthand = true
 use_field_init_shorthand = true
 condense_wildcard_suffixes = true
 unstable_features = true
-show_parse_errors = true
 error_on_line_overflow = true
 error_on_unformatted = true

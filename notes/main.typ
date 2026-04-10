@@ -1,16 +1,3 @@
-#import "@local/typst-template:0.40.0": *
-
-#show: template.with(
-  title: [Notes --- Competitive programming],
-  authorship: (
-    (
-      name: "Adam Martinez",
-      email: "staying@never.land",
-      affiliation: "University of Life",
-    ),
-  ),
-)
-
 = Bits equalizer
 
 The problem may be solved by performing first a linear scan of the input sequence, keeping track of
@@ -135,8 +122,8 @@ be reached.
 Resolution of such a situation would be non-trivial, especially considering the fact that if by the
 end, player 2 is bound to same number of turns as player 1, then surely player 1 is bound to the
 same number of turns as player 2. But that inherently goes against the rules for turn swapping
-between players, which dictate that no player ought hold the turn if #l-enum[they haven't hit the
-  opposing player, *and*][the other player has some ship left unsinked in its navy.]
+between players, which dictate that no player ought hold the turn if they haven't hit the opposing
+player, *and* the other player has some ship left unsinked in its navy.
 
 If these rules held, then termination would be possible, for indeed only a single turn would be
 awarded to a player, a "mercy turn" of sorts; The rest would have to follow from that player having
@@ -322,3 +309,31 @@ issue, as all operations thus far on the data structure of choice for this probl
 but this one specificaly is $O(n)$ where $|N| = n$. A possible improvement could maybe be to replace
 the deque with an ordered set implemented as a tree, such that all seeking operations are worst-case
 $O(log n)$. The input processing routines can likely be improved as well.
+
+#pagebreak()
+
+= A classy problem
+
+This problem will require some discussion prior to implementing it an initial solution. The first
+idea that comes to mind is a ternary tree with height 10. This tree would have the root node
+represent the container in which everything is stored, and from that point on, its children would be
+the three class levels, each of which would form another subtree with the same three-children
+structure.
+
+This could be modeled in terms of a container of binary heaps, each of these itself holding binary
+heaps. But some details of the problem statement are still fuzzy to me, so this could very well be a
+bad idea. Another idea would be to construct a ternary tree of our own and perform DFS, taking note
+of the items we come across as we see them, for this order dictates the non-decreasing order that is
+expected in the problem statement. This should be feasible, considering tree height is static and
+worst-case 10.
+
+For some sample test case with 500 cases, each with 100 input items, and each itself reaching height
+10 in the tree, the time complexity would be dominated by insertion operations. Traversal would
+always have the same fixed size cost; $approx O(60,000)$ for a fixed amount of tree nodes. This
+would make traversal $O(1)$ for all intents and purposes, while making insertion costs be $O(log n)$
+for $n <= 100$. Because nothing stops multiple input items from standing at the same tree node, each
+node should hold the following pieces of information.
+- The main tree DS info, consisting of the three children nodes.
+
+- Satellite data, consisting of a buffer of elements of up to 100 input items worst-case, as that
+  would correspond with some sample case where all input items are at the exact same class level.
