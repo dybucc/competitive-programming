@@ -1,9 +1,21 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, panic::Location};
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum NewIter<T: Ord> {
     Some(T),
     Sentinel,
+}
+
+impl<T: Ord> NewIter<T> {
+    #[track_caller]
+    pub(crate) fn unwrap(self) -> T {
+        if let Self::Some(value) = self {
+            value
+        } else {
+            let caller_info = Location::caller();
+            panic!("{}", caller_info);
+        }
+    }
 }
 
 impl<T: Ord> From<T> for NewIter<T> {
@@ -21,7 +33,7 @@ impl<T: Ord> From<T> for NewIter<T> {
 impl<T: Ord> PartialOrd for NewIter<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let cmp = self.cmp(other);
-        cmp.into()
+        Some(cmp)
     }
 }
 
