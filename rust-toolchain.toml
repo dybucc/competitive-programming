@@ -1,5 +1,4 @@
 [toolchain]
-# channel = "nightly-2026-04-01"
 channel = "nightly"
 profile = "minimal"
 components = [

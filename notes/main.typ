@@ -314,18 +314,28 @@ $O(log n)$. The input processing routines can likely be improved as well.
 
 = A classy problem
 
-This problem will require some discussion prior to implementing it an initial solution. The first
-idea that comes to mind is a ternary tree with height 10. This tree would have the root node
-represent the container in which everything is stored, and from that point on, its children would be
-the three class levels, each of which would form another subtree with the same three-children
-structure.
+This problem will require some discussion prior to implementing an initial solution. The first idea
+that comes to mind is a ternary tree with height 10. This tree would have the root node represent
+the container in which everything is stored, and from that point on, its children would be the three
+class levels, each of which would form another subtree with the same three-children structure. There
+would be up to 10 levels, corresponding with the worst-case scenario for classes on a given input
+item.
 
-This could be modeled in terms of a container of binary heaps, each of these itself holding binary
-heaps. But some details of the problem statement are still fuzzy to me, so this could very well be a
-bad idea. Another idea would be to construct a ternary tree of our own and perform DFS, taking note
+This could also be modeled in terms of a container of binary heaps, each of these itself holding
+binary heaps. But some details of the problem statement are still fuzzy to me, so this could very
+well be a bad idea. If we went for the ternary tree, we would then have to perform DFS, taking note
 of the items we come across as we see them, for this order dictates the non-decreasing order that is
 expected in the problem statement. This should be feasible, considering tree height is static and
 worst-case 10.
+
+The reasoning behind should be that for some ternary tree where the highest class is given by the
+leftmost, deepest node, all classes moving to the right, from deepest to shallowest, should
+correspond with a decreasing relevance in the class level. This, though, is faced with the fact that
+for some class level $A$ and some other class level $B$, where the binary relation $B < A$ holds,
+some third class level $B"-"A$ would hold $B < A < B"-"A$. Such relation would have to hold for
+strict equality, such that $B < A equiv B"-"A$, for the ternary tree idea to be feasible. This
+implies graph traversal is going to require having a notion of ancestors as it goes through the
+nodes.
 
 For some sample test case with 500 cases, each with 100 input items, and each itself reaching height
 10 in the tree, the time complexity would be dominated by insertion operations. Traversal would
