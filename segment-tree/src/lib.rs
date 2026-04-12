@@ -1,6 +1,6 @@
 #![feature(allocator_api, str_as_str)]
 
-use std::{iter, mem::MaybeUninit, ops::Range};
+use std::{borrow::Borrow, iter, mem::MaybeUninit, ops::Range};
 
 use itertools::Itertools;
 
@@ -12,31 +12,9 @@ pub use crate::errors::BuildError;
 pub(crate) use crate::utils::NewIter;
 
 #[derive(Debug, Default, Clone)]
-pub struct SegmentTree<T: Ord>(pub(crate) Vec<T>);
+pub struct SegmentTree<'a, T: Ord + 'a>(pub(crate) Vec<&'a T>);
 
-/// # Errors
-///
-/// Fails if some auxiliary allocation fails.
-impl<T: Ord, A: Into<T>> TryFrom<Vec<A>> for SegmentTree<T> {
-    type Error = BuildError;
-
-    fn try_from(value: Vec<A>) -> Result<Self, Self::Error> {
-        Self::new(value)
-    }
-}
-
-/// # Errors
-///
-/// Fails if some auxiliary allocation fails.
-impl<T: Ord, A: Into<T>, const N: usize> TryFrom<[A; N]> for SegmentTree<T> {
-    type Error = BuildError;
-
-    fn try_from(value: [A; N]) -> Result<Self, Self::Error> {
-        Self::new(value)
-    }
-}
-
-impl<T: Ord> SegmentTree<T> {
+impl<'a, T: Ord + 'a> SegmentTree<'a, &'a T> {
     // TODO: implement a less efficient `new` that does not require the
     // `ExactSizeIterator` bound on the input iterable's iterator. Implement as the
     // method of the `FromIterator` trait, so that that trait impl is documented as
@@ -49,34 +27,17 @@ impl<T: Ord> SegmentTree<T> {
     /// # Errors
     ///
     /// Fails if some auxiliary allocation fails.
-    pub fn new<'a>(
-        input: impl IntoIterator<Item = &'a T, IntoIter: ExactSizeIterator>,
+    pub fn new(
+        input: impl IntoIterator<Item: Borrow<T>, IntoIter: ExactSizeIterator>,
     ) -> Result<Self, BuildError> {
-        let iter = input.into_iter();
+        let iter = input.into_iter().map(|item| item.borrow());
         let init_len = iter.len();
         let target_len = init_len.next_power_of_two();
-        let sentinel_padded_input = {
-            let iter = iter.map_into::<T>();
-            // We map onto a different time capable of holding sentinel values that always
-            // compare larger than actual items of the iterator. See the `Ord`
-            // implementation for `NewIter`.
-            let iter = iter.map_into::<NewIter<T>>();
-            let sentinel_values = {
-                let sentinel_producer = || {
-                    let sentinel = NewIter::Sentinel;
-                    Some(sentinel)
-                };
-                let sentinels = iter::from_fn(sentinel_producer);
-                // We ought pad with as many sentinel values as necessary to reach the next
-                // power of two of the input iterator's initial length (or leave it as a power
-                // of two, if it already was; See the documentation on `next_power_of_two()`.)
-                let sentinel_padding = target_len - init_len;
-                // Recall `iter::from_fn` produces an infinite iterator that ought be capped.
-                sentinels.take(sentinel_padding)
-            };
-            let res = iter.chain(sentinel_values);
-            res.collect::<Vec<_>>()
-        };
+        let sentinel_padded_input: Vec<_> =
+            // We map onto a different time capable of holding sentinel values that always compare larger than actual items of the iterator. See the `Ord` implementation for `NewIter`.
+            // We ought pad with as many sentinel values as necessary to reach the next power of two of the input iterator's initial length (or leave it as a power of two, if it already was; See the documentation on `next_power_of_two()`.)
+            iter.map_into::<NewIter<_>>().chain(iter::from_fn(|| Some(NewIter::Sentinel)).take(target_len - init_len)).collect()
+        ;
         let mut buf = {
             let res = Box::try_new_uninit_slice(target_len);
             let alloc_error = |_| BuildError::AuxiliaryAlloc;

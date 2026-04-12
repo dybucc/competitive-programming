@@ -1,4 +1,6 @@
-= Bits equalizer
+= Problems
+
+== Bits equalizer
 
 The problem may be solved by performing first a linear scan of the input sequence, keeping track of
 indices, in two separate lists, for both the `1` bytes in the input sequence that are `0` bytes in
@@ -64,7 +66,7 @@ of the latter's `0` bytes.
 
 #pagebreak()
 
-= Battleship
+== Battleship
 
 The problem may be solved by storing, for each player, only the locations where they keep thei
 ships. This should take up at most $2(w times h)$ bytes, for a 2-tuple consisting of the coordinates
@@ -155,7 +157,7 @@ This solved the problem.
 
 #pagebreak()
 
-= Tic-tac-toe
+== Tic-tac-toe
 
 The problem seems to be akin to a simulation problem, except the simulation steps are not given.
 Instead, one is expected to either precompute all possible scenarios and evalute whether any one of
@@ -268,7 +270,7 @@ machine.
 
 #pagebreak()
 
-= Divide by 100
+== Divide by 100
 
 The problem is fairly simple, but making it time-efficient is a bit tricky. Initially, the algorithm
 attempted to perform a linear scan over both inputs, namely $N$ and $M$. This makes sense for the
@@ -312,7 +314,7 @@ $O(log n)$. The input processing routines can likely be improved as well.
 
 #pagebreak()
 
-= A classy problem
+== A classy problem
 
 This problem will require some discussion prior to implementing an initial solution. The first idea
 that comes to mind is a ternary tree with height 10. This tree would have the root node represent
@@ -347,3 +349,7 @@ node should hold the following pieces of information.
 
 - Satellite data, consisting of a buffer of elements of up to 100 input items worst-case, as that
   would correspond with some sample case where all input items are at the exact same class level.
+
+= Data structure implementations
+
+#include "segment-tree.typ"

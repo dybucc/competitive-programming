@@ -12,8 +12,7 @@ impl<T: Ord> NewIter<T> {
         if let Self::Some(value) = self {
             value
         } else {
-            let caller_info = Location::caller();
-            panic!("{}", caller_info);
+            panic!("{}", Location::caller());
         }
     }
 }
