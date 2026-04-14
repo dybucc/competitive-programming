@@ -2,8 +2,10 @@ use std::{
     borrow::Cow,
     cmp::Ordering,
     convert::Infallible,
-    io::{self, Read},
-    iter,
+    fmt::Display,
+    io::{self, BufRead},
+    mem::MaybeUninit,
+    ptr,
     str::FromStr,
 };
 
@@ -78,36 +80,38 @@ impl PartialEq for Class {
 
 impl Eq for Class {}
 
-#[derive(Debug)]
-struct Item<'a> {
-    name: Cow<'a, str>,
-    class: Class,
-}
+#[derive(Debug, PartialEq, Eq)]
+struct ReverseShortlexCow<'a>(Cow<'a, str>);
 
-impl Ord for Item<'_> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let class_cmp = self.class.cmp(&other.class);
-        if let Ordering::Equal = class_cmp {
-            self.name.cmp(&other.name).reverse()
-        } else {
-            class_cmp
-        }
+impl<'a> From<&'a str> for ReverseShortlexCow<'a> {
+    fn from(value: &'a str) -> Self {
+        Self(value.into())
     }
 }
 
-impl PartialOrd for Item<'_> {
+impl Display for ReverseShortlexCow<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl Ord for ReverseShortlexCow<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0).reverse()
+    }
+}
+
+impl PartialOrd for ReverseShortlexCow<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.cmp(other).into()
     }
 }
 
-impl PartialEq for Item<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        matches!(self.cmp(other), Ordering::Equal)
-    }
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct Item<'a> {
+    class: Class,
+    name: ReverseShortlexCow<'a>,
 }
-
-impl Eq for Item<'_> {}
 
 fn main() {
     let mut buf = String::new();
