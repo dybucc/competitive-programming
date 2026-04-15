@@ -350,6 +350,62 @@ node should hold the following pieces of information.
 - Satellite data, consisting of a buffer of elements of up to 100 input items worst-case, as that
   would correspond with some sample case where all input items are at the exact same class level.
 
+Alternatively, an implementation could be approached by means of a linked data structure for each
+one of the input items, with a known max size for the list. This, in fact, is the current solution
+for the problem, as it allows for fairly convenient total order implementations for the type
+representing classes. This solution consists of two components: a recursive-descent parser for the
+input class, and an implementation that allows the built-in sorting capabilities of the standard
+library to reorder the input items.
+
+The parser is fairly straightforward, and has been implemented in terms of the `FromStr` trait for
+the `Class` type, which represents the problem's hierarchy. For a given input string, described by
+the regex `(upper|middle|lower)(-(upper|middle|lower))*`, the parser performs a charater-based
+string splitting operation on a reverse pattern that looks for the `-` byte in the input haystack.
+If this succeeds, then the recurrence relation has not yet hit the base case, and a new class can be
+made from the extracted right-most class, while the rest of the string is left to be evaluated on
+another call to `from_str()`, such that its return value is wrapped in a pointer that the aggregate
+type of the `Class` enum variant instance holds. If string splitting does not succeed, then the base
+case has been reached, and a `Class` is constructed directly from the input string, such that the
+stack may start unwinding and creating pointers to each element of the class hierarchy.
+
+This ends up forming a linked data structure that could be compared to cons lists, as the pointers
+are wrapped in `Option`. An invariant thus holds that for some element $a$ of the list, if the
+element has no further level of detail in the class hierarchy, its single compound type is always
+`None`. If we take into consideration the time and memory limits on the problem statement, this
+approach seems feasible, even against the non-friendly cache space locality of linked lists. A
+possible improvement would be for the class type to be a single aggregate type that collects into a
+10-element (pre-allocated) buffer the different levels of detail of a given input item's class
+hierarchy (taking advantage of the fact we always know the maximum number of class chains.) But so
+far nothing has proven the current approch to be insufficient in its performance.
+
+Note that beyond the class hierarchy for each input item, its name is also stored on a collector
+type, such that a total order is always found even if the class hierarchy turns out equivalent for
+some two instances (taking into account the additional guarantees given in the problem statement on
+no two input names being equal.) This also allows performing unstable sorting, as no initial order
+ought be preserved, for all elements will eventually compare unequivalent (_possibly_ through the
+class or _surely_ through their names.)
+
+Sorting runs in $O(n log n)$ and uses the `Ord` implementation of the afore mentioned collector
+type. This type derives automatically the required traits, as it relies on the shortlex ordering of
+the fields in the record to follow the required name disambiguation. This implies the stored `Class`
+type is always the first field when comparing lexicographically, while the name of the input item is
+left second. Something to note is that the name is not simply stored as a string, as the shortlex
+order of letters of the Roman alphabet under UTF-8 evaluates letters appearing later in the alphabet
+as being larger than earlier ones. This has been solved through a thin wrapper over `std`'s
+`&'_ str` where the implementation of `Ord`'s `cmp()` for `&'_ str` is `reverse()`d right before
+returning from the routine.
+
+All items are gathered in a contiguous allocation, such that upon sorting, the elements ought be
+printed in reverse order to reflect the problem statement's requirements. This has no real
+performance bottlenecks as the iterator over this allocation also implements `DoubleEndedIterator`
+for efficient reverse traversal.
+
+Currently, efforts are focused on solving a mysterious runtime error in the current implementation.
+This is quite surely due to some `unwrap()` call on a `Result` or `Option` that the implemenattion
+is not taking into consideration correctly. Once this is solved, the only thing left will be to
+refine the `Ord` implementation of `Class`, to completely align with the behavior explained in the
+problem statement.
+
 = Data structure implementations
 
 #include "segment-tree.typ"

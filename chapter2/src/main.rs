@@ -1,11 +1,9 @@
 use std::{
-    borrow::Cow,
     cmp::Ordering,
     convert::Infallible,
     fmt::Display,
-    io::{self, BufRead},
-    mem::MaybeUninit,
-    ptr,
+    io::{self, Read, Write},
+    iter,
     str::FromStr,
 };
 
@@ -81,27 +79,27 @@ impl PartialEq for Class {
 impl Eq for Class {}
 
 #[derive(Debug, PartialEq, Eq)]
-struct ReverseShortlexCow<'a>(Cow<'a, str>);
+struct ReverseShortlex<'a>(&'a str);
 
-impl<'a> From<&'a str> for ReverseShortlexCow<'a> {
+impl<'a> From<&'a str> for ReverseShortlex<'a> {
     fn from(value: &'a str) -> Self {
-        Self(value.into())
+        Self(value)
     }
 }
 
-impl Display for ReverseShortlexCow<'_> {
+impl Display for ReverseShortlex<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl Ord for ReverseShortlexCow<'_> {
+impl Ord for ReverseShortlex<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0).reverse()
+        self.0.cmp(other.0).reverse()
     }
 }
 
-impl PartialOrd for ReverseShortlexCow<'_> {
+impl PartialOrd for ReverseShortlex<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.cmp(other).into()
     }
@@ -110,31 +108,40 @@ impl PartialOrd for ReverseShortlexCow<'_> {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Item<'a> {
     class: Class,
-    name: ReverseShortlexCow<'a>,
+    name: ReverseShortlex<'a>,
 }
 
 fn main() {
     let mut buf = String::new();
     io::stdin().read_to_string(&mut buf).unwrap();
     let mut lines = buf.lines();
-    let cases: usize = lines.next().unwrap().parse().unwrap();
+    let cases: usize = lines.next().map(|cases| cases.parse().unwrap()).unwrap();
     let mut buf = Vec::new();
     let sep: String = iter::repeat_n('=', 30).collect();
+    let mut stdout = io::stdout().lock();
     for _ in 0..cases {
-        let len: usize = lines.next().unwrap().parse().unwrap();
+        let len: usize = lines.next().map(|cases| cases.parse().unwrap()).unwrap();
         buf.reserve(len.saturating_sub(buf.capacity()));
         for _ in 0..len {
-            let mut comps = lines.next().unwrap().split_ascii_whitespace();
+            let mut comps = lines.next().map(str::split_ascii_whitespace).unwrap();
             buf.push(Item {
-                name: comps.next().unwrap().trim_end_matches(':').into(),
-                class: Class::from_str(comps.next().unwrap()).unwrap(),
+                name: comps
+                    .next()
+                    .map(|comp| comp.trim_end_matches(':'))
+                    .map(Into::into)
+                    .unwrap(),
+                class: comps
+                    .next()
+                    .map(Class::from_str)
+                    .map(Result::unwrap)
+                    .unwrap(),
             });
         }
         buf.sort_unstable();
         for Item { name, .. } in buf.iter().rev() {
-            println!("{name}");
+            writeln!(stdout, "{name}").unwrap();
         }
-        println!("{sep}");
+        writeln!(stdout, "{sep}").unwrap();
         buf.clear();
     }
 }
