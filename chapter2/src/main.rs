@@ -1,9 +1,9 @@
 use std::{
+    array,
     cmp::Ordering,
     convert::Infallible,
-    fmt::Display,
+    fmt::{self, Display, Formatter},
     io::{self, Read, Write},
-    iter,
     str::FromStr,
 };
 
@@ -53,6 +53,103 @@ impl Ord for Class {
             (Self::Lower(Some(class1)), Self::Lower(Some(class2)))
             | (Self::Middle(Some(class1)), Self::Middle(Some(class2)))
             | (Self::Upper(Some(class1)), Self::Upper(Some(class2))) => class1.cmp(class2),
+
+            (Self::Lower(Some(class)), Self::Lower(None))
+                if matches!(&**class, Class::Middle(_)) =>
+            {
+                Ordering::Equal
+            }
+            (Self::Lower(Some(class)), Self::Lower(None))
+                if matches!(&**class, Class::Lower(_)) =>
+            {
+                Ordering::Less
+            }
+            (Self::Lower(Some(class)), Self::Lower(None))
+                if matches!(&**class, Class::Upper(_)) =>
+            {
+                Ordering::Greater
+            }
+
+            (Self::Lower(None), Self::Lower(Some(class)))
+                if matches!(&**class, Class::Middle(_)) =>
+            {
+                Ordering::Equal
+            }
+            (Self::Lower(None), Self::Lower(Some(class)))
+                if matches!(&**class, Class::Lower(_)) =>
+            {
+                Ordering::Greater
+            }
+            (Self::Lower(None), Self::Lower(Some(class)))
+                if matches!(&**class, Class::Upper(_)) =>
+            {
+                Ordering::Less
+            }
+
+            (Self::Middle(Some(class)), Self::Middle(None))
+                if matches!(&**class, Class::Middle(_)) =>
+            {
+                Ordering::Equal
+            }
+            (Self::Middle(Some(class)), Self::Middle(None))
+                if matches!(&**class, Class::Lower(_)) =>
+            {
+                Ordering::Less
+            }
+            (Self::Middle(Some(class)), Self::Middle(None))
+                if matches!(&**class, Class::Upper(_)) =>
+            {
+                Ordering::Greater
+            }
+
+            (Self::Middle(None), Self::Middle(Some(class)))
+                if matches!(&**class, Class::Middle(_)) =>
+            {
+                Ordering::Equal
+            }
+            (Self::Middle(None), Self::Middle(Some(class)))
+                if matches!(&**class, Class::Lower(_)) =>
+            {
+                Ordering::Greater
+            }
+            (Self::Middle(None), Self::Middle(Some(class)))
+                if matches!(&**class, Class::Upper(_)) =>
+            {
+                Ordering::Less
+            }
+
+            (Self::Upper(Some(class)), Self::Upper(None))
+                if matches!(&**class, Class::Middle(_)) =>
+            {
+                Ordering::Equal
+            }
+            (Self::Upper(Some(class)), Self::Upper(None))
+                if matches!(&**class, Class::Lower(_)) =>
+            {
+                Ordering::Less
+            }
+            (Self::Upper(Some(class)), Self::Upper(None))
+                if matches!(&**class, Class::Upper(_)) =>
+            {
+                Ordering::Greater
+            }
+
+            (Self::Upper(None), Self::Upper(Some(class)))
+                if matches!(&**class, Class::Middle(_)) =>
+            {
+                Ordering::Equal
+            }
+            (Self::Upper(None), Self::Upper(Some(class)))
+                if matches!(&**class, Class::Lower(_)) =>
+            {
+                Ordering::Greater
+            }
+            (Self::Upper(None), Self::Upper(Some(class)))
+                if matches!(&**class, Class::Upper(_)) =>
+            {
+                Ordering::Less
+            }
+
             (Self::Lower(_), Self::Lower(_))
             | (Self::Middle(_), Self::Middle(_))
             | (Self::Upper(_), Self::Upper(_)) => Ordering::Equal,
@@ -88,7 +185,7 @@ impl<'a> From<&'a str> for ReverseShortlex<'a> {
 }
 
 impl Display for ReverseShortlex<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
 }
@@ -115,12 +212,12 @@ fn main() {
     let mut buf = String::new();
     io::stdin().read_to_string(&mut buf).unwrap();
     let mut lines = buf.lines();
-    let cases: usize = lines.next().map(|cases| cases.parse().unwrap()).unwrap();
+    let cases: usize = lines.next().map(str::parse).map(Result::unwrap).unwrap();
     let mut buf = Vec::new();
-    let sep: String = iter::repeat_n('=', 30).collect();
+    let sep: [_; 30] = array::repeat(b'=');
     let mut stdout = io::stdout().lock();
     for _ in 0..cases {
-        let len: usize = lines.next().map(|cases| cases.parse().unwrap()).unwrap();
+        let len: usize = lines.next().map(str::parse).map(Result::unwrap).unwrap();
         buf.reserve(len.saturating_sub(buf.capacity()));
         for _ in 0..len {
             let mut comps = lines.next().map(str::split_ascii_whitespace).unwrap();
@@ -139,9 +236,11 @@ fn main() {
         }
         buf.sort_unstable();
         for Item { name, .. } in buf.iter().rev() {
-            writeln!(stdout, "{name}").unwrap();
+            stdout.write_fmt(format_args!("{name}\n")).unwrap();
         }
-        writeln!(stdout, "{sep}").unwrap();
+        stdout.write_all(&sep).unwrap();
+        stdout.write_all(b"\n").unwrap();
+        stdout.flush().unwrap();
         buf.clear();
     }
 }

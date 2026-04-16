@@ -9,8 +9,8 @@ cargo := require("cargo")
 delta := require("delta")
 moor := require("moor")
 current-problem := "classy"
-current-case := "classy-02.in"
-current-sol := "classy-02.ans"
+current-case := "classy-01.in"
+current-sol := "classy-01.ans"
 problem-dir := home_directory() / "Downloads"
 rust-version := "1.94.0"
 opts := append(prepend(replace_regex('''
@@ -25,11 +25,11 @@ default:
     {{ just_executable() }} --list --unsorted --justfile {{ justfile() }}
 
 # runs the program without testing it against sample cases
-[arg("err", pattern='0|1')]
-[arg("nightly", pattern='0|1')]
+[arg("err", pattern='-e|')]
+[arg("nightly", pattern='-n|')]
 [no-cd]
-run nightly='0' err='0':
-    {{ if nightly == "1" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r --release {{ if err == "1" { "" } else { "2> /dev/null" } }} -- <{{ problem-dir / current-problem / current-case }}
+run nightly='' err='':
+    {{ if nightly == "-n" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r --release {{ if err == "-e" { "" } else { "2> /dev/null" } }} -- <{{ problem-dir / current-problem / current-case }}
 
 # runs the current test case for the current problem
 [no-cd]

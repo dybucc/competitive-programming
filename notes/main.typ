@@ -404,7 +404,19 @@ Currently, efforts are focused on solving a mysterious runtime error in the curr
 This is quite surely due to some `unwrap()` call on a `Result` or `Option` that the implemenattion
 is not taking into consideration correctly. Once this is solved, the only thing left will be to
 refine the `Ord` implementation of `Class`, to completely align with the behavior explained in the
-problem statement.
+third paragraph of the problem statement.
+
+The runtime error is still present, and no solution has been found thus far. Whatever details were
+left to iron out of the `Ord` impl are now done. These consisted of a special case when
+disambiguating with two equivalent clases, where one of them had a larger class chain, while the
+other didn't. The problem statement, even though underspecified, mentions that in such cases one
+ouoght take into consideration the next class of whichever of the two has the largest class chain,
+and compare them equivalent if such class is 'middle.' I assume this implies if the next class is
+any one of 'lower' or 'upper', the comparison should follow the same specification as outlined
+initially. A similar test case to the one presented in the problem statement for this particular
+context has been run, and it seems successful.
+
+The only thing that remains unsolved is the runtime error.
 
 = Data structure implementations
 
