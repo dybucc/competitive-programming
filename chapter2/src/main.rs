@@ -1,5 +1,4 @@
 use std::{
-    array,
     cmp::Ordering,
     convert::Infallible,
     fmt::{self, Display, Formatter},
@@ -55,11 +54,6 @@ impl Ord for Class {
             | (Self::Upper(Some(class1)), Self::Upper(Some(class2))) => class1.cmp(class2),
 
             (Self::Lower(Some(class)), Self::Lower(None))
-                if matches!(&**class, Class::Middle(_)) =>
-            {
-                Ordering::Equal
-            }
-            (Self::Lower(Some(class)), Self::Lower(None))
                 if matches!(&**class, Class::Lower(_)) =>
             {
                 Ordering::Less
@@ -71,11 +65,6 @@ impl Ord for Class {
             }
 
             (Self::Lower(None), Self::Lower(Some(class)))
-                if matches!(&**class, Class::Middle(_)) =>
-            {
-                Ordering::Equal
-            }
-            (Self::Lower(None), Self::Lower(Some(class)))
                 if matches!(&**class, Class::Lower(_)) =>
             {
                 Ordering::Greater
@@ -87,11 +76,6 @@ impl Ord for Class {
             }
 
             (Self::Middle(Some(class)), Self::Middle(None))
-                if matches!(&**class, Class::Middle(_)) =>
-            {
-                Ordering::Equal
-            }
-            (Self::Middle(Some(class)), Self::Middle(None))
                 if matches!(&**class, Class::Lower(_)) =>
             {
                 Ordering::Less
@@ -103,11 +87,6 @@ impl Ord for Class {
             }
 
             (Self::Middle(None), Self::Middle(Some(class)))
-                if matches!(&**class, Class::Middle(_)) =>
-            {
-                Ordering::Equal
-            }
-            (Self::Middle(None), Self::Middle(Some(class)))
                 if matches!(&**class, Class::Lower(_)) =>
             {
                 Ordering::Greater
@@ -119,11 +98,6 @@ impl Ord for Class {
             }
 
             (Self::Upper(Some(class)), Self::Upper(None))
-                if matches!(&**class, Class::Middle(_)) =>
-            {
-                Ordering::Equal
-            }
-            (Self::Upper(Some(class)), Self::Upper(None))
                 if matches!(&**class, Class::Lower(_)) =>
             {
                 Ordering::Less
@@ -134,11 +108,6 @@ impl Ord for Class {
                 Ordering::Greater
             }
 
-            (Self::Upper(None), Self::Upper(Some(class)))
-                if matches!(&**class, Class::Middle(_)) =>
-            {
-                Ordering::Equal
-            }
             (Self::Upper(None), Self::Upper(Some(class)))
                 if matches!(&**class, Class::Lower(_)) =>
             {
@@ -214,7 +183,7 @@ fn main() {
     let mut lines = buf.lines();
     let cases: usize = lines.next().map(str::parse).map(Result::unwrap).unwrap();
     let mut buf = Vec::new();
-    let sep: [_; 30] = array::repeat(b'=');
+    let sep = [b'='; 30];
     let mut stdout = io::stdout().lock();
     for _ in 0..cases {
         let len: usize = lines.next().map(str::parse).map(Result::unwrap).unwrap();
@@ -236,11 +205,10 @@ fn main() {
         }
         buf.sort_unstable();
         for Item { name, .. } in buf.iter().rev() {
-            stdout.write_fmt(format_args!("{name}\n")).unwrap();
+            writeln!(stdout, "{name}").unwrap();
         }
         stdout.write_all(&sep).unwrap();
         stdout.write_all(b"\n").unwrap();
-        stdout.flush().unwrap();
         buf.clear();
     }
 }

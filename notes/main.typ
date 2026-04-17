@@ -416,7 +416,12 @@ any one of 'lower' or 'upper', the comparison should follow the same specificati
 initially. A similar test case to the one presented in the problem statement for this particular
 context has been run, and it seems successful.
 
-The only thing that remains unsolved is the runtime error.
+The only thing that remains unsolved is the runtime error. The runtime error is still a mistery. The
+only fallible functions are those that perform I/O-bound operations, and none of those should fail.
+The only other operation that performs a panic-bound operation is building a `Class`, which hits an
+`unreachable` in the case of the input string not matching any one of the expected clases. This
+should not be possible, as the parsing routine within the `FromStr` for the class type cannot
+produce that type of fauly input string.
 
 = Data structure implementations
 
