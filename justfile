@@ -4,14 +4,14 @@ set shell := ["fish", "-c"]
 alias r := run
 alias t := test
 alias s := show
-alias d := run-debug
+alias d := debug
 
 cargo := require("cargo")
 delta := require("delta")
 moor := require("moor")
 current-problem := "classy"
-current-case := "classy-02.in"
-current-sol := "classy-02.ans"
+current-case := "classy-01.in"
+current-sol := "classy-01.ans"
 problem-dir := home_directory() / "Downloads"
 
 # FIXME(msrv): update whenever kattis updates
@@ -32,7 +32,7 @@ default:
 [arg("err", pattern='-e|')]
 [arg("nightly", pattern='-n|')]
 [no-cd]
-run-debug nightly='' err='':
+debug nightly='' err='':
     {{ if nightly == "-n" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} +$RV r -- {{ if err == "-e" { "" } else { "2> /dev/null" } }} <{{ problem-dir / current-problem / current-case }}
 
 # runs the program without testing it against sample cases

@@ -3,6 +3,8 @@ use std::{
     convert::Infallible,
     fmt::{self, Display, Formatter},
     io::{self, Read, Write},
+    panic::{self, AssertUnwindSafe},
+    process,
     str::FromStr,
 };
 
@@ -203,6 +205,8 @@ fn main() {
                     .unwrap(),
             });
         }
+        // TODO: the error is in the sorting step, which likely means in the `Ord`
+        // implementation.
         buf.sort_unstable();
         for Item { name, .. } in buf.iter().rev() {
             writeln!(stdout, "{name}").unwrap();

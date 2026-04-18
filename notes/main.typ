@@ -423,6 +423,9 @@ The only other operation that performs a panic-bound operation is building a `Cl
 should not be possible, as the parsing routine within the `FromStr` for the class type cannot
 produce that type of fauly input string.
 
+After having manually gone through all possible points of failure with a `panic::catch_unwind()`,
+the error seems to be in the sorting routine.
+
 = Data structure implementations
 
 #include "segment-tree.typ"
