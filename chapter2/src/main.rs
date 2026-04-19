@@ -1,183 +1,110 @@
 use std::{
     cmp::Ordering,
-    convert::Infallible,
-    fmt::{self, Display, Formatter},
     io::{self, Read, Write},
-    panic::{self, AssertUnwindSafe},
-    process,
-    str::FromStr,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Class {
-    Lower(Option<Box<Self>>),
-    Middle(Option<Box<Self>>),
-    Upper(Option<Box<Self>>),
+    Lower = 0,
+    Middle = 1,
+    Upper = 2,
 }
 
 impl Class {
     fn new(input: impl AsRef<str>) -> Self {
         match input.as_ref() {
-            "lower" => Self::Lower(None),
-            "middle" => Self::Middle(None),
-            "upper" => Self::Upper(None),
+            "lower" => Self::Lower,
+            "middle" => Self::Middle,
+            "upper" => Self::Upper,
             _ => unreachable!(),
         }
     }
-
-    fn set(&mut self, child: Self) {
-        *self = match self {
-            Self::Lower(_) => Self::Lower(Box::new(child).into()),
-            Self::Middle(_) => Self::Middle(Box::new(child).into()),
-            Self::Upper(_) => Self::Upper(Box::new(child).into()),
-        };
-    }
 }
 
-impl FromStr for Class {
-    type Err = Infallible;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(if let Some((child, raw_class)) = s.rsplit_once('-') {
-            let mut class = Self::new(raw_class);
-            class.set(Self::from_str(child).unwrap());
-            class
-        } else {
-            Self::new(s)
-        })
-    }
+#[derive(Debug)]
+struct Item<'a> {
+    name: &'a str,
+    class: Vec<Class>,
 }
 
-impl Ord for Class {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match (self, other) {
-            (Self::Lower(Some(class1)), Self::Lower(Some(class2)))
-            | (Self::Middle(Some(class1)), Self::Middle(Some(class2)))
-            | (Self::Upper(Some(class1)), Self::Upper(Some(class2))) => class1.cmp(class2),
-
-            (Self::Lower(Some(class)), Self::Lower(None))
-                if matches!(&**class, Class::Lower(_)) =>
-            {
-                Ordering::Less
-            }
-            (Self::Lower(Some(class)), Self::Lower(None))
-                if matches!(&**class, Class::Upper(_)) =>
-            {
-                Ordering::Greater
-            }
-
-            (Self::Lower(None), Self::Lower(Some(class)))
-                if matches!(&**class, Class::Lower(_)) =>
-            {
-                Ordering::Greater
-            }
-            (Self::Lower(None), Self::Lower(Some(class)))
-                if matches!(&**class, Class::Upper(_)) =>
-            {
-                Ordering::Less
-            }
-
-            (Self::Middle(Some(class)), Self::Middle(None))
-                if matches!(&**class, Class::Lower(_)) =>
-            {
-                Ordering::Less
-            }
-            (Self::Middle(Some(class)), Self::Middle(None))
-                if matches!(&**class, Class::Upper(_)) =>
-            {
-                Ordering::Greater
-            }
-
-            (Self::Middle(None), Self::Middle(Some(class)))
-                if matches!(&**class, Class::Lower(_)) =>
-            {
-                Ordering::Greater
-            }
-            (Self::Middle(None), Self::Middle(Some(class)))
-                if matches!(&**class, Class::Upper(_)) =>
-            {
-                Ordering::Less
-            }
-
-            (Self::Upper(Some(class)), Self::Upper(None))
-                if matches!(&**class, Class::Lower(_)) =>
-            {
-                Ordering::Less
-            }
-            (Self::Upper(Some(class)), Self::Upper(None))
-                if matches!(&**class, Class::Upper(_)) =>
-            {
-                Ordering::Greater
-            }
-
-            (Self::Upper(None), Self::Upper(Some(class)))
-                if matches!(&**class, Class::Lower(_)) =>
-            {
-                Ordering::Greater
-            }
-            (Self::Upper(None), Self::Upper(Some(class)))
-                if matches!(&**class, Class::Upper(_)) =>
-            {
-                Ordering::Less
-            }
-
-            (Self::Lower(_), Self::Lower(_))
-            | (Self::Middle(_), Self::Middle(_))
-            | (Self::Upper(_), Self::Upper(_)) => Ordering::Equal,
-            (Self::Lower(_), Self::Middle(_) | Self::Upper(_))
-            | (Self::Middle(_), Self::Upper(_)) => Ordering::Less,
-            (Self::Middle(_) | Self::Upper(_), Self::Lower(_))
-            | (Self::Upper(_), Self::Middle(_)) => Ordering::Greater,
+impl<'a> Item<'a> {
+    fn new(s: &'a str) -> Self {
+        let mut comps = s.split_ascii_whitespace();
+        let name = comps.next().map(|name| name.trim_end_matches(':')).unwrap();
+        Self {
+            name,
+            class: comps
+                .next()
+                .map(|class| class.split('-').map(Class::new).collect())
+                .unwrap(),
         }
     }
 }
 
-impl PartialOrd for Class {
+// TODO: finish this and see if this `Ord` implementation is better than the
+// recursive one we got before.
+impl Ord for Item<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let Self {
+            name: sname,
+            class: sclass,
+        } = self;
+        let Self {
+            name: oname,
+            class: oclass,
+        } = other;
+        let mut sclass = sclass.iter().peekable();
+        let mut oclass = oclass.iter().peekable();
+        let class_cmp = loop {
+            match sclass.next().cmp(&oclass.next()) {
+                Ordering::Equal => {
+                    if sclass.peek().is_some() && oclass.peek().is_some() {
+                        continue;
+                    }
+                    if let Some(s) = sclass.peek()
+                        && oclass.peek().is_none()
+                    {
+                        match s {
+                            Class::Middle => break Ordering::Equal,
+                            Class::Lower => break Ordering::Less,
+                            Class::Upper => break Ordering::Greater,
+                        }
+                    }
+                    if let Some(o) = oclass.peek()
+                        && sclass.peek().is_none()
+                    {
+                        match o {
+                            Class::Middle => break Ordering::Equal,
+                            Class::Lower => break Ordering::Less,
+                            Class::Upper => break Ordering::Greater,
+                        }
+                    }
+                    break Ordering::Equal;
+                }
+                other => break other,
+            }
+        };
+        if let Ordering::Equal = class_cmp {
+            sname.cmp(oname).reverse()
+        } else {
+            class_cmp
+        }
+    }
+}
+
+impl PartialOrd for Item<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.cmp(other).into()
     }
 }
 
-impl PartialEq for Class {
+impl PartialEq for Item<'_> {
     fn eq(&self, other: &Self) -> bool {
         matches!(self.cmp(other), Ordering::Equal)
     }
 }
 
-impl Eq for Class {}
-
-#[derive(Debug, PartialEq, Eq)]
-struct ReverseShortlex<'a>(&'a str);
-
-impl<'a> From<&'a str> for ReverseShortlex<'a> {
-    fn from(value: &'a str) -> Self {
-        Self(value)
-    }
-}
-
-impl Display for ReverseShortlex<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl Ord for ReverseShortlex<'_> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(other.0).reverse()
-    }
-}
-
-impl PartialOrd for ReverseShortlex<'_> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.cmp(other).into()
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Item<'a> {
-    class: Class,
-    name: ReverseShortlex<'a>,
-}
+impl Eq for Item<'_> {}
 
 fn main() {
     let mut buf = String::new();
@@ -185,32 +112,16 @@ fn main() {
     let mut lines = buf.lines();
     let cases: usize = lines.next().map(str::parse).map(Result::unwrap).unwrap();
     let mut buf = Vec::new();
-    let sep = [b'='; 30];
+    let sep = const { [b'='; 30] };
     let mut stdout = io::stdout().lock();
     for _ in 0..cases {
         let len: usize = lines.next().map(str::parse).map(Result::unwrap).unwrap();
         buf.reserve(len.saturating_sub(buf.capacity()));
-        for _ in 0..len {
-            let mut comps = lines.next().map(str::split_ascii_whitespace).unwrap();
-            buf.push(Item {
-                name: comps
-                    .next()
-                    .map(|comp| comp.trim_end_matches(':'))
-                    .map(Into::into)
-                    .unwrap(),
-                class: comps
-                    .next()
-                    .map(Class::from_str)
-                    .map(Result::unwrap)
-                    .unwrap(),
-            });
-        }
-        // TODO: the error is in the sorting step, which likely means in the `Ord`
-        // implementation.
+        (0..len).for_each(|_| buf.push(Item::new(lines.next().unwrap())));
         buf.sort_unstable();
-        for Item { name, .. } in buf.iter().rev() {
-            writeln!(stdout, "{name}").unwrap();
-        }
+        buf.iter()
+            .rev()
+            .for_each(|Item { name, .. }| writeln!(stdout, "{name}").unwrap());
         stdout.write_all(&sep).unwrap();
         stdout.write_all(b"\n").unwrap();
         buf.clear();
