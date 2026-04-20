@@ -1,6 +1,11 @@
 use std::{
     cmp::Ordering,
     io::{self, Read, Write},
+    marker::PhantomPinned,
+    mem::MaybeUninit,
+    panic::{self, AssertUnwindSafe},
+    pin::Pin,
+    process, ptr,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -22,72 +27,110 @@ impl Class {
 }
 
 #[derive(Debug)]
+struct PinnedArray([MaybeUninit<Class>; 10], PhantomPinned);
+
+#[derive(Debug)]
 struct Item<'a> {
     name: &'a str,
-    class: Vec<Class>,
+    class: Pin<Box<PinnedArray>>,
+    init: usize,
 }
 
 impl<'a> Item<'a> {
     fn new(s: &'a str) -> Self {
         let mut comps = s.split_ascii_whitespace();
         let name = comps.next().map(|name| name.trim_end_matches(':')).unwrap();
+        let mut cont = PinnedArray([MaybeUninit::uninit(); 10], PhantomPinned);
+        let init_elems = comps
+            .next()
+            .map(|class| {
+                class
+                    .split('-')
+                    .rev()
+                    .map(Class::new)
+                    .zip(cont.0.iter_mut())
+                    .fold(usize::default(), |init_elems, (class, cont)| {
+                        cont.write(class);
+
+                        init_elems + 1
+                    })
+            })
+            .unwrap();
         Self {
             name,
-            class: comps
-                .next()
-                .map(|class| class.split('-').map(Class::new).collect())
-                .unwrap(),
+            class: Box::pin(cont),
+            init: init_elems,
         }
     }
 }
 
-// TODO: finish this and see if this `Ord` implementation is better than the
-// recursive one we got before.
+// TODO: keep looking into what's wrong with the total order defined here.
 impl Ord for Item<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         let Self {
             name: sname,
             class: sclass,
+            init: sinit,
         } = self;
         let Self {
             name: oname,
             class: oclass,
+            init: oinit,
         } = other;
-        let mut sclass = sclass.iter().peekable();
-        let mut oclass = oclass.iter().peekable();
-        let class_cmp = loop {
+
+        macro_rules! init {
+            ($cont:tt) => {{
+                macro_rules! spec {
+                    (sclass) => {
+                        *sinit
+                    };
+                    (oclass) => {
+                        *oinit
+                    };
+                }
+
+                let bptr = $cont.0.as_ptr();
+                unsafe {
+                    ptr::slice_from_raw_parts(bptr, spec!($cont))
+                        .as_ref()
+                        .unwrap()
+                        .assume_init_ref()
+                }
+            }};
+        }
+
+        let mut sclass = init!(sclass).iter().peekable();
+        let mut oclass = init!(oclass).iter().peekable();
+        'a: loop {
             match sclass.next().cmp(&oclass.next()) {
                 Ordering::Equal => {
                     if sclass.peek().is_some() && oclass.peek().is_some() {
                         continue;
                     }
-                    if let Some(s) = sclass.peek()
-                        && oclass.peek().is_none()
-                    {
-                        match s {
-                            Class::Middle => break Ordering::Equal,
-                            Class::Lower => break Ordering::Less,
-                            Class::Upper => break Ordering::Greater,
+                    'b: {
+                        if let Some(s) = sclass.peek() {
+                            if oclass.peek().is_none() {
+                                match s {
+                                    Class::Middle => break 'b,
+                                    Class::Lower => break 'a Ordering::Less,
+                                    Class::Upper => break 'a Ordering::Greater,
+                                }
+                            }
+                        }
+                        if let Some(o) = oclass.peek() {
+                            if sclass.peek().is_none() {
+                                match o {
+                                    Class::Middle => break 'b,
+                                    Class::Lower => break 'a Ordering::Greater,
+                                    Class::Upper => break 'a Ordering::Less,
+                                }
+                            }
                         }
                     }
-                    if let Some(o) = oclass.peek()
-                        && sclass.peek().is_none()
-                    {
-                        match o {
-                            Class::Middle => break Ordering::Equal,
-                            Class::Lower => break Ordering::Less,
-                            Class::Upper => break Ordering::Greater,
-                        }
-                    }
-                    break Ordering::Equal;
+                    break sname.cmp(oname).reverse();
                 }
                 other => break other,
             }
-        };
-        if let Ordering::Equal = class_cmp {
-            sname.cmp(oname).reverse()
-        } else {
-            class_cmp
         }
     }
 }
@@ -118,7 +161,10 @@ fn main() {
         let len: usize = lines.next().map(str::parse).map(Result::unwrap).unwrap();
         buf.reserve(len.saturating_sub(buf.capacity()));
         (0..len).for_each(|_| buf.push(Item::new(lines.next().unwrap())));
-        buf.sort_unstable();
+        if panic::catch_unwind(AssertUnwindSafe(|| buf.sort_unstable())).is_err() {
+            unsafe { writeln!(stdout, "failed").unwrap_unchecked() };
+            process::exit(0);
+        }
         buf.iter()
             .rev()
             .for_each(|Item { name, .. }| writeln!(stdout, "{name}").unwrap());
