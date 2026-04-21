@@ -426,6 +426,28 @@ produce that type of fauly input string.
 After having manually gone through all possible points of failure with a `panic::catch_unwind()`,
 the error seems to be in the sorting routine.
 
+The entirety of the solution has been refactored into using a more iterative approach, in the hopes
+that the `Ord` implementation was faulty previously due to differing possible results for a single
+given `Class` type (depending on the pointed to elements chained to it.)
+
+The current implementation is also about twice as short (based off of byte counts in the source
+file,) and centralizes the entire logic for the `Ord` implementation under the `Item` type, which
+now includes all three fields for the item name, the (up to) 10-element chained class hierarchy, and
+a counter used at construction time to keep track of which of the elements in the array backing the
+class chain are initialized. This implementation completely avoids heap allocations, but the issue
+with the `Ord` implementation seems to be ever present.
+
+I am lead to believe that the issue at hand lies in the fact the `Ord` implementation requires
+considering both the class and the name, which may make for a non-total order definition. Suppose
+some item $a$ has a class $alpha$ and name $A$, and some other item $b$ has class $beta$ and name
+$B$. Assume then that there exists an equivalence relation that holds true for classes
+$alpha, beta$. Then, $a$ can only compare with respect to $b$ in name, which would mean that a
+relation of _larger than_ or _less than_ would have to exist between $A$ and $B$. Suppose it holds
+that $A > B$, and thus $a > b$. If some third item $c$ with class $gamma$ and name $C$ has that the
+relation $beta > gamma$ holds, then it would also hold that $a > b > c$. Because the only way for
+$a$ and $b$ to be compared in name and not in class is for $alpha$ to be equivalent to $beta$, it
+holds by transitivity that $alpha > gamma$.
+
 = Data structure implementations
 
 #include "segment-tree.typ"
