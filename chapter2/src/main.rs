@@ -1,8 +1,6 @@
 use std::{
     cmp::Ordering,
     io::{self, Read, Write},
-    mem::MaybeUninit,
-    ptr,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -28,92 +26,46 @@ impl Class {
 #[repr(C)]
 struct Item<'a> {
     name: &'a str,
-    class: [MaybeUninit<Class>; 10],
-    init: u8,
+    class: [Class; 10],
 }
 
 impl<'a> Item<'a> {
     fn new(s: &'a str) -> Self {
         let mut comps = s.split_ascii_whitespace();
         let name = comps.next().map(|name| name.trim_end_matches(':')).unwrap();
-        let mut cont = const { [MaybeUninit::uninit(); 10] };
-        Self {
-            name,
-            init: comps
-                .next()
-                .map(|class| {
-                    class
-                        .split('-')
-                        .rev()
-                        .map(Class::new)
-                        .zip(cont.iter_mut())
-                        .fold(u8::default(), |init_elems, (class, cont)| {
-                            cont.write(class);
-
-                            init_elems + 1
-                        })
-                })
-                .unwrap(),
-            class: cont,
-        }
+        let mut cont = const { [Class::Middle; 10] };
+        comps
+            .next()
+            .map(|chain| {
+                chain
+                    .split('-')
+                    .rev()
+                    .map(Class::new)
+                    .zip(cont.iter_mut())
+                    .for_each(|(class, cont)| *cont = class);
+            })
+            .unwrap();
+        Self { name, class: cont }
     }
 }
 
-// TODO: keep looking into what's wrong with the total order defined here.
 impl Ord for Item<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         let Self {
             name: sname,
             class: sclass,
-            init: sinit,
         } = self;
         let Self {
             name: oname,
             class: oclass,
-            init: oinit,
         } = other;
 
-        macro_rules! init {
-            (@sclass) => { *sinit };
-            (@oclass) => { *oinit };
-            ($cont:tt) => {{
-                let bptr = $cont.as_ptr();
-                unsafe {
-                    ptr::slice_from_raw_parts(bptr, init!(@$cont) as usize)
-                        .as_ref()
-                        .unwrap()
-                        .assume_init_ref()
-                }
-            }};
-        }
-
-        let mut sclass = init!(sclass).iter().peekable();
-        let mut oclass = init!(oclass).iter().peekable();
-        'a: loop {
+        let mut sclass = sclass.iter().peekable();
+        let mut oclass = oclass.iter().peekable();
+        loop {
             match sclass.next().cmp(&oclass.next()) {
-                Ordering::Equal => {
-                    if sclass.peek().is_some() && oclass.peek().is_some() {
-                        continue;
-                    }
-                    'b: {
-                        // TODO: tweak this to peek into the entirety of `sclass` as that seems to
-                        // be the real order intended in the problem statement.
-                        if let Some(s) = sclass.peek() {
-                            match s {
-                                Class::Middle => break 'b,
-                                Class::Lower => break 'a Ordering::Less,
-                                Class::Upper => break 'a Ordering::Greater,
-                            }
-                        } else if let Some(o) = oclass.peek() {
-                            match o {
-                                Class::Middle => break 'b,
-                                Class::Lower => break 'a Ordering::Greater,
-                                Class::Upper => break 'a Ordering::Less,
-                            }
-                        }
-                    }
-                    break sname.cmp(oname).reverse();
-                }
+                Ordering::Equal if sclass.peek().is_some() && oclass.peek().is_some() => (),
+                Ordering::Equal => break sname.cmp(oname).reverse(),
                 other => break other,
             }
         }

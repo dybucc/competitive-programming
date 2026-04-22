@@ -430,23 +430,58 @@ The entirety of the solution has been refactored into using a more iterative app
 that the `Ord` implementation was faulty previously due to differing possible results for a single
 given `Class` type (depending on the pointed to elements chained to it.)
 
-The current implementation is also about twice as short (based off of byte counts in the source
-file,) and centralizes the entire logic for the `Ord` implementation under the `Item` type, which
-now includes all three fields for the item name, the (up to) 10-element chained class hierarchy, and
-a counter used at construction time to keep track of which of the elements in the array backing the
-class chain are initialized. This implementation completely avoids heap allocations, but the issue
-with the `Ord` implementation seems to be ever present.
+The current implementation is also about twice as short (based off of byte counts in the source file
+including whitespace,) and centralizes the entire logic for the `Ord` implementation under the
+`Item` type, which now includes both fields required for ordering. It also includes a counter used
+at construction time to keep track of which of the elements in the array backing the class chain are
+initialized. This implementation completely avoids heap allocations, but the issue with the `Ord`
+implementation seems to be ever present.
 
-I am lead to believe that the issue at hand lies in the fact the `Ord` implementation requires
+I am lead to believe that the source of it lies in the fact the `Ord` implementation requires
 considering both the class and the name, which may make for a non-total order definition. Suppose
 some item $a$ has a class $alpha$ and name $A$, and some other item $b$ has class $beta$ and name
-$B$. Assume then that there exists an equivalence relation that holds true for classes
-$alpha, beta$. Then, $a$ can only compare with respect to $b$ in name, which would mean that a
-relation of _larger than_ or _less than_ would have to exist between $A$ and $B$. Suppose it holds
-that $A > B$, and thus $a > b$. If some third item $c$ with class $gamma$ and name $C$ has that the
-relation $beta > gamma$ holds, then it would also hold that $a > b > c$. Because the only way for
-$a$ and $b$ to be compared in name and not in class is for $alpha$ to be equivalent to $beta$, it
-holds by transitivity that $alpha > gamma$.
+$B$. Assume then that there exists an equivalence relation that holds true for classes $alpha, beta$
+such that $alpha equiv beta$. Then, $a$ can only compare with respect to $b$ in name, which would
+mean that a relation of _larger than_ or _less than_ would have to exist between $A$ and $B$.
+Suppose that relation $A > B$ holds, and thus $a > b$. If some third item $c$ with class $gamma$ and
+name $C$ has that relation $beta > gamma$ holds, then it would also hold that $a > b > c$. Because
+the only way for $a$ and $b$ to be compared in name and not in class is for $alpha$ to be equivalent
+to $beta$, it holds by transitivity that $alpha > gamma$. This does not seem to reveal any issues
+with the relation of total order that is modeled in the `Ord` implementation, but there may exist
+some nuance in the way classes $alpha, beta$ get compared when determining equivalence for some
+chains $|alpha| = Alpha, |beta| = Beta$ where $Alpha equiv.not Beta$ and all classes following the
+largest of the two do not compare equivalent to the last class in the smallest of the two. Maybe the
+issue in the current implementation is in handling that particular case.
+
+The key is possibly in a sentence of the problem statement where the authors mention that for some
+two classes $a, b$, if the class chain for $a$, namely $alpha$, and the class chain for $b$, namely
+$beta$, are known to be equivalent, then all classes following the one where the length of $alpha$
+is equivalent to the length of $beta$, for the largest of the chains, are to be equivalent to the
+middle class of the class coming before the "lowest" level of detail, for the shortest of the
+chains. The current implementation assumes this to mean that for some two items where the class
+chain of one of them is a prefix of the class chain of the other, disambiguation between the two
+ought happen with respect to the first class (from right to left in the input samples) that is not
+shared by both chains, such that if it is determined to be a middle class, it will compare
+equivalent to the class at the previous level of detail in the shorter chain, or otherwise be
+considered _less than_ if the former is of lower class, and _greater than_ if of higher class.
+
+What the problem authors may have meant here is for all subsequent classes to the prefix shared by
+both chains (i.e. the subset of the chain that is only present in the largest of the class chains)
+to have to be middle classes for them to compare equal. This could be implemented by checking for
+the length of both iterators we currently traverse through to evaluate class chains, and "fill" the
+shortest of them with middle classes. This would then allow to keep the same logic as implemented
+thus far. This could even allow the item type to be even lighter, as we wouldn't have the need to
+keep track of the number of initialized elements in the buffer backing the class chain; Whatever
+elements remained to reach the target length could be filled in with another chained iterator
+consisting only of middle classes.
+
+This solved the problem. A subsequent submission should now follow with a slightly more optimized
+approach to filling that does not rely on type erasure and iterator chaining. The problem is now
+done. The runtime is slow, as it goes for .08 seconds with the above optimization, but beyond that,
+it seems to fair well. Judging by the problem time limit, it seems as if the problem is indeed one
+to take a fairly long running time for each sample, as it's extended beyond the 1 second limit to
+the 4 second limit. Still, the top solutions seem to have a .01 seconds solution, so surely there's
+room for improvement.
 
 = Data structure implementations
 
