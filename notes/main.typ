@@ -478,10 +478,32 @@ consisting only of middle classes.
 This solved the problem. A subsequent submission should now follow with a slightly more optimized
 approach to filling that does not rely on type erasure and iterator chaining. The problem is now
 done. The runtime is slow, as it goes for .08 seconds with the above optimization, but beyond that,
-it seems to fair well. Judging by the problem time limit, it seems as if the problem is indeed one
-to take a fairly long running time for each sample, as it's extended beyond the 1 second limit to
-the 4 second limit. Still, the top solutions seem to have a .01 seconds solution, so surely there's
-room for improvement.
+it seems to fare well. Judging by the problem time limit, it seems as if the problem is indeed one
+to take a fairly long running time for each sample, as it's extended beyond the usual 1 second limit
+to the 4 second limit. Still, the top solutions seem to have a .01 seconds solution, so surely
+there's room for improvement.
+
+One clear area for performance optimizations is the fact that no matter the input, comparisons are
+made for all 10 maximum number of classes in a given class chain. This can't be noticeably improved,
+but it can be made to only perform traversal through whatever remains of the longest of the class
+chains' iterator, in the case one class chain is found to be a prefix of the other. This would then
+mean that the array with classes (including those "filler" middle classes) ought be reverted to
+smaller-sized slices, such that an iterator adapter like `all()` can determine if such longest chain
+is full of middle classes or should otherwise compare unequal. It is in the latter case where we
+speak of comparing unequal that this alternative algorithm is incorrect; There is no place to handle
+the case where the longest of the chains does not have its non-prefixed part be made out anything
+but middle classes. To fix this, the iterator adapter over the remains of the longest chain should
+evaluate to a type more rich in traversal information than a mere boolean. This could be achieved by
+means of a `try_fold()`, which would halt on the first non-middle class found in the remaining
+classes from the longest of the chains. This class would then be returned to compare it anew (this
+time through `Ord`'s `cmp()`) with the middle class. This does not seem like it is any different
+than what the prior solution did, only this time moving the logic to a purely iterator-based
+approach rather than building up the iterators from the arrays containing middle class "fillers".
+The only difference is in the code region where the middle class generator logic lies.
+
+Indeed, the solution seems to yield the same CPU running time as our prior (and simpler) solution.
+Maybe a better performance optimization goes through reducing allocation time by reserving in
+advance space on each of the buffers we use for both raw input and item processing.
 
 = Data structure implementations
 

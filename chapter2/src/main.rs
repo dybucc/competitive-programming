@@ -1,6 +1,8 @@
 use std::{
     cmp::Ordering,
     io::{self, Read, Write},
+    mem::MaybeUninit,
+    ops::ControlFlow,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -26,26 +28,33 @@ impl Class {
 #[repr(C)]
 struct Item<'a> {
     name: &'a str,
-    class: [Class; 10],
+    class: [MaybeUninit<Class>; 10],
+    init: u8,
 }
 
 impl<'a> Item<'a> {
     fn new(s: &'a str) -> Self {
         let mut comps = s.split_ascii_whitespace();
         let name = comps.next().map(|name| name.trim_end_matches(':')).unwrap();
-        let mut cont = const { [Class::Middle; 10] };
-        comps
-            .next()
-            .map(|chain| {
-                chain
-                    .split('-')
-                    .rev()
-                    .map(Class::new)
-                    .zip(cont.iter_mut())
-                    .for_each(|(class, cont)| *cont = class);
-            })
-            .unwrap();
-        Self { name, class: cont }
+        let mut cont = const { [MaybeUninit::uninit(); 10] };
+        Self {
+            name,
+            init: comps
+                .next()
+                .map(|chain| {
+                    chain
+                        .split('-')
+                        .rev()
+                        .map(Class::new)
+                        .zip(cont.iter_mut())
+                        .fold(u8::default(), |init, (class, cont)| {
+                            cont.write(class);
+                            init + 1
+                        })
+                })
+                .unwrap(),
+            class: cont,
+        }
     }
 }
 
@@ -54,20 +63,53 @@ impl Ord for Item<'_> {
         let Self {
             name: sname,
             class: sclass,
+            init: sinit,
         } = self;
         let Self {
             name: oname,
             class: oclass,
+            init: oinit,
         } = other;
 
-        let mut sclass = sclass.iter().peekable();
-        let mut oclass = oclass.iter().peekable();
+        macro_rules! iter {
+            (@sclass) => { *sinit };
+            (@oclass) => { *oinit };
+            ($token:tt) => {
+                unsafe { $token[..iter!(@$token) as usize].assume_init_ref().iter().peekable() }
+            };
+        }
+
+        macro_rules! compare_last {
+            (@sclass, $last:expr) => {
+                break $last.cmp(&Class::Middle);
+            };
+            (@oclass, $last:expr) => {
+                break Class::Middle.cmp($last);
+            };
+            ($iter:tt) => {{
+                if let ControlFlow::Break(last) = $iter.try_for_each(|class| {
+                    if matches!(class, Class::Middle) {
+                        ControlFlow::Continue(())
+                    } else {
+                        ControlFlow::Break(class)
+                    }
+                }) {
+                    compare_last!(@$iter, last);
+                }
+            }};
+        }
+
+        let mut sclass = iter!(sclass);
+        let mut oclass = iter!(oclass);
         loop {
             match sclass.next().cmp(&oclass.next()) {
-                Ordering::Equal if sclass.peek().is_some() && oclass.peek().is_some() => (),
-                Ordering::Equal => break sname.cmp(oname).reverse(),
+                Ordering::Equal if sclass.peek().is_some() && oclass.peek().is_some() => continue,
+                Ordering::Equal if sclass.peek().is_some() => compare_last!(sclass),
+                Ordering::Equal if oclass.peek().is_some() => compare_last!(oclass),
+                Ordering::Equal => (),
                 other => break other,
             }
+            break sname.cmp(oname).reverse();
         }
     }
 }
@@ -104,6 +146,7 @@ fn main() {
             .for_each(|Item { name, .. }| writeln!(stdout, "{name}").unwrap());
         stdout.write_all(&sep).unwrap();
         stdout.write_all(b"\n").unwrap();
+        stdout.flush().unwrap();
         buf.clear();
     }
 }
