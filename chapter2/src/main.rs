@@ -1,6 +1,7 @@
 use std::{
     cmp::Ordering,
-    io::{self, Read, Write},
+    hint,
+    io::{self, BufRead, BufWriter, Write},
     mem::MaybeUninit,
     ops::ControlFlow,
 };
@@ -19,46 +20,54 @@ impl Class {
             "lower" => Self::Lower,
             "middle" => Self::Middle,
             "upper" => Self::Upper,
-            _ => unreachable!(),
+            _ => unsafe { hint::unreachable_unchecked() },
         }
     }
 }
 
 #[derive(Debug)]
 #[repr(C)]
-struct Item<'a> {
-    name: &'a str,
+struct Item {
+    name: String,
     class: [MaybeUninit<Class>; 10],
     init: u8,
 }
 
-impl<'a> Item<'a> {
-    fn new(s: &'a str) -> Self {
+impl Item {
+    fn new(s: &str) -> Self {
         let mut comps = s.split_ascii_whitespace();
-        let name = comps.next().map(|name| name.trim_end_matches(':')).unwrap();
+        let name = unsafe {
+            comps
+                .next()
+                .map(|name| name.trim_end_matches(':'))
+                .map(ToOwned::to_owned)
+                .unwrap_unchecked()
+        };
         let mut cont = const { [MaybeUninit::uninit(); 10] };
         Self {
             name,
-            init: comps
-                .next()
-                .map(|chain| {
-                    chain
-                        .split('-')
-                        .rev()
-                        .map(Class::new)
-                        .zip(cont.iter_mut())
-                        .fold(u8::default(), |init, (class, cont)| {
-                            cont.write(class);
-                            init + 1
-                        })
-                })
-                .unwrap(),
+            init: unsafe {
+                comps
+                    .next()
+                    .map(|chain| {
+                        chain
+                            .split('-')
+                            .rev()
+                            .map(Class::new)
+                            .zip(cont.iter_mut())
+                            .fold(u8::default(), |init, (class, cont)| {
+                                cont.write(class);
+                                init + 1
+                            })
+                    })
+                    .unwrap_unchecked()
+            },
             class: cont,
         }
     }
 }
 
-impl Ord for Item<'_> {
+impl Ord for Item {
     fn cmp(&self, other: &Self) -> Ordering {
         let Self {
             name: sname,
@@ -114,39 +123,62 @@ impl Ord for Item<'_> {
     }
 }
 
-impl PartialOrd for Item<'_> {
+impl PartialOrd for Item {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.cmp(other).into()
     }
 }
 
-impl PartialEq for Item<'_> {
+impl PartialEq for Item {
     fn eq(&self, other: &Self) -> bool {
         matches!(self.cmp(other), Ordering::Equal)
     }
 }
 
-impl Eq for Item<'_> {}
+impl Eq for Item {}
 
 fn main() {
-    let mut buf = String::new();
-    io::stdin().read_to_string(&mut buf).unwrap();
-    let mut lines = buf.lines();
-    let cases: usize = lines.next().map(str::parse).map(Result::unwrap).unwrap();
-    let mut buf = Vec::new();
+    let mut buf = String::with_capacity(const { 32 + 6 * 11 });
+    let mut stdin = io::stdin().lock();
+    let mut stdout = BufWriter::new(io::stdout().lock());
     let sep = const { [b'='; 30] };
-    let mut stdout = io::stdout().lock();
-    for _ in 0..cases {
-        let len: usize = lines.next().map(str::parse).map(Result::unwrap).unwrap();
-        buf.reserve(len.saturating_sub(buf.capacity()));
-        (0..len).for_each(|_| buf.push(Item::new(lines.next().unwrap())));
-        buf.sort_unstable();
-        buf.iter()
-            .rev()
-            .for_each(|Item { name, .. }| writeln!(stdout, "{name}").unwrap());
-        stdout.write_all(&sep).unwrap();
-        stdout.write_all(b"\n").unwrap();
-        stdout.flush().unwrap();
-        buf.clear();
+
+    macro_rules! read {
+        () => {
+            unsafe { stdin.read_until(b'\n', buf.as_mut_vec()).unwrap_unchecked() }
+        };
     }
+    macro_rules! parse {
+        () => {
+            unsafe { buf.trim_ascii().parse().unwrap_unchecked() }
+        };
+    }
+
+    read!();
+    let mut cases: u16 = parse!();
+    buf.clear();
+    let mut itembuf = Vec::with_capacity(100);
+    while cases != 0 {
+        read!();
+        let mut samples: u8 = parse!();
+        buf.clear();
+        while samples != 0 {
+            read!();
+            itembuf.push(Item::new(&buf));
+            buf.clear();
+            samples -= 1;
+        }
+        itembuf.sort_unstable();
+        itembuf
+            .iter()
+            .rev()
+            .for_each(|Item { name, .. }| unsafe { writeln!(stdout, "{name}").unwrap_unchecked() });
+        unsafe {
+            stdout.write_all(&sep).unwrap_unchecked();
+            stdout.write_all(b"\n").unwrap_unchecked();
+        };
+        itembuf.clear();
+        cases -= 1;
+    }
+    unsafe { stdout.flush().unwrap_unchecked() };
 }

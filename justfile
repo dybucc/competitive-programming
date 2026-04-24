@@ -10,8 +10,8 @@ cargo := require("cargo")
 delta := require("delta")
 moor := require("moor")
 current-problem := "classy"
-current-case := "classy-02.in"
-current-sol := "classy-02.ans"
+current-case := "classy-01.in"
+current-sol := "classy-01.ans"
 problem-dir := home_directory() / "Downloads"
 
 # FIXME(msrv): update whenever kattis updates

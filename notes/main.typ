@@ -503,7 +503,43 @@ The only difference is in the code region where the middle class generator logic
 
 Indeed, the solution seems to yield the same CPU running time as our prior (and simpler) solution.
 Maybe a better performance optimization goes through reducing allocation time by reserving in
-advance space on each of the buffers we use for both raw input and item processing.
+advance space on each of the buffers we use for both raw input and item processing. That does not
+seem to change the CPU time. Finally, one of the optimizations has yield better results. The current
+implementation has gone down to .03 seconds, as a result of removing a bunch of flushing writes to
+`stdout` and bulk reads to `stdin`. This has meant removing the bulk `read_to_string()` that was
+being used to fill an initial in-memory buffer with the information to parse, and instead have the
+input be read in-place. The lock over `stdout` that was held then got wrapped in a `BufWriter` that
+ensured the writer did not perform any midway-through calls to `flush()`, to instead be manually
+flushed right before calling `drop()` on the writer/lock. Other improvements that have come as a
+consequence of the above changes include having a smaller allocation for the raw input buffer, as it
+is only expected to hold the contents of a single line, and thus the preallocated capacity went down
+to little over 100 bytes, corresponding with the maximum byte length of the largest test sample
+input item. This, though, has meant that the type for input items no longer holds references into
+that raw buffer but rather owns the string that is passed to it by cloning from the substring
+produced in the corresponding iterator for the name of each item, within that type's constructor
+routine.
+
+== Bread
+
+The problem expects to check if the input collection can be sorted with three element rotations.
+This likely has some behavior akin to a data structure that can be exploited, but it's not
+immediately obvious. The key is likely in performing a check that does not truly sort the sequence
+but rather performs the same steps as required to sort it, only stopping at some state in which it
+is made clear that further rotations would not result in a sorted sequence. The first idea that
+comes to mind is formulating a DP recurrence relation whereby all possible states are considered for
+rotation. Considering the rotation operation is fundamentally a trigger of the next permutation in a
+3-element subset of the overall ordered input set (really a sequence, though,) this problem is
+fundamentally asking whether there is one possible combination of three element permutations over
+three-element subsets of the input set that can get the initial state of the set to its output
+state. Considering input collections can get up to 100,000 elements long, a complete search is not
+feasible, so the search space ought be pruned, and possibly early-terminated if some condition holds
+for construction impossibility before a certain (substantial) number of operations are performed.
+
+The recurrence for a complete search here would consider upwards of $2^n$ possible permutations,
+which for the largest $n$ is infeasible. Still, out of those set permutations there are some that
+can't possibly be reached with a three-element rotation, as otherwise the problem wouldn't be asking
+for the feasibility of the final state. Which chunk of the search space ought be pruned is, indeed,
+the question.
 
 = Data structure implementations
 
