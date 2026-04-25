@@ -523,23 +523,35 @@ routine.
 
 The problem expects to check if the input collection can be sorted with three element rotations.
 This likely has some behavior akin to a data structure that can be exploited, but it's not
-immediately obvious. The key is likely in performing a check that does not truly sort the sequence
-but rather performs the same steps as required to sort it, only stopping at some state in which it
-is made clear that further rotations would not result in a sorted sequence. The first idea that
-comes to mind is formulating a DP recurrence relation whereby all possible states are considered for
-rotation. Considering the rotation operation is fundamentally a trigger of the next permutation in a
-3-element subset of the overall ordered input set (really a sequence, though,) this problem is
-fundamentally asking whether there is one possible combination of three element permutations over
-three-element subsets of the input set that can get the initial state of the set to its output
-state. Considering input collections can get up to 100,000 elements long, a complete search is not
-feasible, so the search space ought be pruned, and possibly early-terminated if some condition holds
-for construction impossibility before a certain (substantial) number of operations are performed.
+immediately obvious to me. The key is likely in performing a check that does not truly sort the
+sequence but rather performs the same steps as required to sort it, only stopping at some state in
+which it is made clear that further rotations would not result in a sorted sequence. The first idea
+that comes to mind is formulating a DP recurrence relation whereby all possible states are
+considered for rotation. Considering the rotation operation is fundamentally a trigger of the next
+permutation in a 3-element subset of the overall ordered input set (really a sequence, though,) this
+problem is fundamentally asking whether there is one possible combination of three element
+permutations over three-element subsets of the input set that can get the initial state of the set
+to its output state. Considering input collections can get up to 100,000 elements long, a complete
+search is not feasible, so the search space ought be pruned, and possibly early-terminated if some
+condition holds for construction impossibility before a certain (substantial) number of operations
+are performed.
 
 The recurrence for a complete search here would consider upwards of $2^n$ possible permutations,
 which for the largest $n$ is infeasible. Still, out of those set permutations there are some that
 can't possibly be reached with a three-element rotation, as otherwise the problem wouldn't be asking
 for the feasibility of the final state. Which chunk of the search space ought be pruned is, indeed,
-the question.
+the question. This is neither a mere distraction in the problem statement, as the whole goal of the
+problem is to determine whether such final permutation is reachable with the provided rotation
+operation.
+
+A little pen and paper sketch has yield some answers. This is likely a problem where a DP recurrence
+will come in handy, as there are overlapping states. These, in fact, are also the states that
+determine whether some search path ought be pruned, as repetition of some such search path would not
+yield program termination (due to infinite recursion.) The logic is fairly simple; For some input
+set, there are always the same number of three-element _position_ subsets that are prone to
+reordering. These can be easily (but possibly not efficently) obtained by running a sliding window
+algorithm from `std` on the input collection. A reduction on the elements of that iterator would
+yield the offsets into the collection where each three-element subset is found.
 
 = Data structure implementations
 
