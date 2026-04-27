@@ -1,13 +1,45 @@
-use std::io::{self, BufRead};
+use std::{
+    io::{self, BufRead, BufReader, BufWriter, Write},
+    ops::Range,
+};
 
-fn dp(c: &[u32], i: &[u32], f: &[u32]) {}
+// 1 3 4 2
+//   [1 3 4] 2
+//     [4 1 3] 2
+//       [3 4 1] 2
+//     4 [1 3 2]
+//       4 [2 1 3]
+//         4 [3 2 1]
+//   1 [3 4 2]
+//     1 [2 3 4]
+//       1 [4 2 3]
+fn dp<'a>(mut refer: &'a [u32; 3], i: &'a [u32], f: &[u32], mut r: Range<usize>) -> bool {
+    if i == f {
+        return true;
+    }
+    for _ in 0..i.len() - 2 {
+        let mut new = i.to_owned();
+        let ss = &mut new[r.clone()];
+        ss.rotate_right(1);
+        if refer == ss {
+            return false;
+        }
+        if dp(refer, &new, f, r.clone()) {
+            return true;
+        }
+        r.start += 1;
+        r.end -= 1;
+        refer = i[r.clone()].as_array().unwrap();
+    }
+    false
+}
 
 fn main() {
     let mut buf = String::new();
-    let mut stdin = io::stdin().lock();
+    let mut stdin = BufReader::new(io::stdin().lock());
     macro_rules! read {
         () => {
-            unsafe { stdin.read_until(b'\n', buf.as_mut_vec()).unwrap_unchecked() }
+            unsafe { stdin.read_until(b'\n', buf.as_mut_vec()).unwrap() }
         };
     }
     macro_rules! c {
@@ -15,7 +47,7 @@ fn main() {
             Vec::with_capacity($b)
         };
         () => {{
-            let b = unsafe { buf.trim_ascii().parse().unwrap_unchecked() };
+            let b = buf.trim_ascii().parse().unwrap();
             (c!(b), c!(b))
         }};
     }
@@ -23,7 +55,7 @@ fn main() {
         ($c:expr) => {
             buf.split_ascii_whitespace()
                 .map(str::parse::<u32>)
-                .map(|res| unsafe { res.unwrap_unchecked() })
+                .map(|res| res.unwrap())
                 .for_each(|num| $c.push(num))
         };
     }
@@ -33,5 +65,11 @@ fn main() {
     proc!(i);
     read!();
     proc!(f);
-    dp(&i[..i.len() - 3], &i, &f);
+    let mut stdout = BufWriter::new(io::stdout().lock());
+    if dp(i[..3].as_array().unwrap(), &i, &f, 0..3) {
+        stdout.write_all(b"Possible").unwrap();
+    } else {
+        stdout.write_all(b"Impossible").unwrap();
+    }
+    stdout.flush().unwrap();
 }

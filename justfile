@@ -1,4 +1,4 @@
-set quiet := true
+set quiet
 set shell := ["fish", "-c"]
 
 alias r := run
@@ -9,9 +9,9 @@ alias d := debug
 cargo := require("cargo")
 delta := require("delta")
 moor := require("moor")
-current-problem := "classy"
-current-case := "classy-01.in"
-current-sol := "classy-01.ans"
+current-problem := "bread"
+current-case := "bread.1.in"
+current-sol := "bread.1.ans"
 problem-dir := home_directory() / "Downloads"
 
 # FIXME(msrv): update whenever kattis updates
@@ -29,18 +29,18 @@ default:
     {{ just_executable() }} --list --unsorted --justfile {{ justfile() }}
 
 # runs the program without testing it against sample cases with `debug_assertions` on
-[arg("err", pattern='-e|')]
-[arg("nightly", pattern='-n|')]
+[arg("err", pattern='(-|\+)e')]
+[arg("nightly", pattern='(-|\+)n')]
 [no-cd]
-debug nightly='' err='':
-    {{ if nightly == "-n" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} +$RV r -- {{ if err == "-e" { "" } else { "2> /dev/null" } }} <{{ problem-dir / current-problem / current-case }}
+debug nightly='-n' err='-e':
+    {{ if nightly == "+n" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} +$RV r -- {{ if err == "+e" { "" } else { "2> /dev/null" } }} <{{ problem-dir / current-problem / current-case }}
 
 # runs the program without testing it against sample cases
-[arg("err", pattern='-e|')]
-[arg("nightly", pattern='-n|')]
+[arg("err", pattern='(-|\+)e')]
+[arg("nightly", pattern='(-|\+)n')]
 [no-cd]
-run nightly='' err='':
-    {{ if nightly == "-n" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r "--release" {{ if err == "-e" { "" } else { "2> /dev/null" } }} -- <{{ problem-dir / current-problem / current-case }}
+run nightly='-n' err='-e':
+    {{ if nightly == "+n" { "RV=nightly" } else { "RV=" + rust-version } }} {{ cargo }} {{ cargo-opts }} r "--release" {{ if err == "+e" { "" } else { "2> /dev/null" } }} -- <{{ problem-dir / current-problem / current-case }}
 
 # runs the current test case for the current problem
 [no-cd]
