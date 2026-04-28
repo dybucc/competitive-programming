@@ -540,8 +540,8 @@ The recurrence for a complete search here would consider upwards of $2^n$ possib
 which for the largest $n$ is infeasible. Still, out of those set permutations there are some that
 can't possibly be reached with a three-element rotation, as otherwise the problem wouldn't be asking
 for the feasibility of the final state. Which chunk of the search space ought be pruned is, indeed,
-the question. This is neither a mere distraction in the problem statement, as the whole goal of the
-problem is to determine whether such final permutation is reachable with the provided rotation
+the question. This is likely not a mere distraction in the problem statement, as the whole goal of
+the problem is to determine whether such final permutation is reachable with the provided rotation
 operation.
 
 A little pen and paper sketch has yield some answers. This is likely a problem where a DP recurrence
@@ -550,8 +550,41 @@ determine whether some search path ought be pruned, as repetition of some such s
 yield program termination (due to infinite recursion.) The logic is fairly simple; For some input
 set, there are always the same number of three-element _position_ subsets that are prone to
 reordering. These can be easily (but possibly not efficently) obtained by running a sliding window
-algorithm from `std` on the input collection. A reduction on the elements of that iterator would
-yield the offsets into the collection where each three-element subset is found.
+algorithm from `std` on the input collection's iterator. A reduction on the elements of that
+iterator would yield the offsets into the collection where each three-element subset is found.
+
+The current implementation considers a DP recurrence where the function considers three pieces of
+state and one comparator collection. The state consists of a three-tuple with a referent
+three-element window made out of the original three elements of the subset being permuted at
+present, then a range denoting the current three-element subset under consideration at present, and
+finally the complete collection, a subset of which we are permuting, and passsing across function
+calls. The base case is reached when the sequence being permuted compares equivalent to the static
+piece of information. This last part of the recurrence is not stored in static storage because it is
+not feasible to do so in Rust, and the overhead is admissible, as we only pay in the size of a
+pointer to the `'static` collection in `main`'s stack. All other cases consist of selecting a
+three-element subset and start running the routine again each time we check the new rotated sequence
+is deemed unequal to the referent. If this latter check evaluates `false`, recursion unwinds as a
+limit case (but not a base case) has been reached. The algorithm works correctly, except that the
+stack can apparently overflow with certain recursion limits where $2^6$ permutations are being
+"potentially" computed. This does not even solve the public test samples. There's likely a pattern
+to be exploited here.
+
+Maybe the problem actually needs to store all permutations reachable with the rotation operation
+that we get from the statement. The fact the stack overflows likely means the search space is larger
+than the allowed stack space on the process' virtual AS, but likely not large enough to exhaust the
+heap. This should likely mean using the same algorithm but instead building a graph with vertices
+corresponding to the state of the collection post-permutation, and edges representing whether the
+currently recursive algorithm would lead to one permutation from another in two consecutive stack
+frames. Then, if running SSSP on the resulting graph yields an answer, then surely it is possible to
+reach the target permutation. This approach has a few issues, though. The stack recursion is still
+going to have to be emulated on the heap which means twice as much memory consumption; With a 1 MiB
+limit and permutation limits of $O(n)$ for $n = 100,000$, this is hard. Then there's the SSSP, which
+would have to use DFS or BFS for an additional linear cost in traversing the graph. That adds up
+fast with the above limits. Even without an upper bound on the possible permutation with the
+three-element subset rotation operation, it still isn't enough to fit the AC limits. Or not.
+Inspecting the output of the current algorithm implementation on the failing sample case, it seems
+as if there is some case the whole thing is converging to, and looping infinitely in. There may
+still be hope for the current recursive approach.
 
 = Data structure implementations
 

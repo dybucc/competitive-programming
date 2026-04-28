@@ -13,6 +13,7 @@ use std::{
 //   1 [3 4 2]
 //     1 [2 3 4]
 //       1 [4 2 3]
+// TODO: there's some edge case that never unwinds the stack.
 fn dp<'a>(mut refer: &'a [u32; 3], i: &'a [u32], f: &[u32], mut r: Range<usize>) -> bool {
     if i == f {
         return true;
@@ -24,11 +25,17 @@ fn dp<'a>(mut refer: &'a [u32; 3], i: &'a [u32], f: &[u32], mut r: Range<usize>)
         if refer == ss {
             return false;
         }
+        #[cfg(debug_assertions)]
+        eprintln!("{new:?}");
         if dp(refer, &new, f, r.clone()) {
             return true;
         }
-        r.start += 1;
-        r.end -= 1;
+        if r.start < i.len() - 3 {
+            r.start += 1;
+        }
+        if r.end < i.len() {
+            r.end += 1;
+        }
         refer = i[r.clone()].as_array().unwrap();
     }
     false
@@ -61,15 +68,17 @@ fn main() {
     }
     read!();
     let (mut i, mut f) = c!();
+    buf.clear();
     read!();
     proc!(i);
+    buf.clear();
     read!();
     proc!(f);
     let mut stdout = BufWriter::new(io::stdout().lock());
     if dp(i[..3].as_array().unwrap(), &i, &f, 0..3) {
-        stdout.write_all(b"Possible").unwrap();
+        stdout.write_all(b"Possible\n").unwrap();
     } else {
-        stdout.write_all(b"Impossible").unwrap();
+        stdout.write_all(b"Impossible\n").unwrap();
     }
     stdout.flush().unwrap();
 }
