@@ -586,6 +586,35 @@ Inspecting the output of the current algorithm implementation on the failing sam
 as if there is some case the whole thing is converging to, and looping infinitely in. There may
 still be hope for the current recursive approach.
 
+Considering the sample test case for the non-decreasingly sorted sequence $1, 2, 3, 4, 5, 6$, there
+seems to be a point in the recusion where the following sequence of rotations recuses infinitely:
+
+$
+  { 3, 4, 5, 1, 2, 6 }
+  { 3, 4, 5, 6, 1, 2 }
+  { 3, 4, 5, 2, 6, 1 }
+$
+
+This case is, indeed, the one where we ought determine the impossibility of reaching the final state
+from the initial state. It may just be that such infinite recursion is the trigger for such
+impossibility. There is one fairly simple solution to the entire problem if that is the case; upon
+the thread unwinding from the panic, we can simply install a panic handler and a panic hook. The
+panic hook simply prints `"Impossible"`, while the panic handler catches the unwind in the DP
+recursive function. The latter stops the program from exitting with non-zero exit status, and the
+former ensures we get the right answer to `stdout`. But this is not really possible, because the way
+the Rust runtime reacts to a stack overflow is by aborting the process and not by cleanly unwinding,
+which are the only panics we can catch with `std`. The solution should either way avoid this type of
+low-level nifty tricks.
+
+The issue could actually lie not in the sample cases where no solution is found, but in the way the
+algorithm is handling the last three-element subset in the collection. The first public sample case
+yields an answer before reaching the last three-element subsequence, which of course, did not
+trigger the infinite recursion above. Indeed, the issue lies in all recursion happenning as soon as
+the first subset furthest to the right of the input collection starts rotating. The problem is in
+the way repeated cases are handled. To solve it, we require keeping a memoization table of size 3,
+that provides the same value as the referent subset across recursive calls, but instead keeps track
+of the three possible element orderings in the current rotating subset under consideration.
+
 = Data structure implementations
 
 #include "segment-tree.typ"

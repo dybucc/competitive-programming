@@ -13,7 +13,6 @@ use std::{
 //   1 [3 4 2]
 //     1 [2 3 4]
 //       1 [4 2 3]
-// TODO: there's some edge case that never unwinds the stack.
 fn dp<'a>(mut refer: &'a [u32; 3], i: &'a [u32], f: &[u32], mut r: Range<usize>) -> bool {
     if i == f {
         return true;
@@ -23,10 +22,12 @@ fn dp<'a>(mut refer: &'a [u32; 3], i: &'a [u32], f: &[u32], mut r: Range<usize>)
         let ss = &mut new[r.clone()];
         ss.rotate_right(1);
         if refer == ss {
+            #[cfg(debug_assertions)]
+            eprintln!("refer:\t{refer:?}, sequence repeated:\t{new:?}");
             return false;
         }
         #[cfg(debug_assertions)]
-        eprintln!("{new:?}");
+        eprintln!("refer:\t{refer:?}, sequence unrepeated:\t{new:?}");
         if dp(refer, &new, f, r.clone()) {
             return true;
         }
