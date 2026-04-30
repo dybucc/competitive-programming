@@ -615,6 +615,31 @@ the way repeated cases are handled. To solve it, we require keeping a memoizatio
 that provides the same value as the referent subset across recursive calls, but instead keeps track
 of the three possible element orderings in the current rotating subset under consideration.
 
+This may not yield the right answer, though at present we have at least gotten the implementation to
+reproduce the same stack overflow error from the leftmost subset of the source sequence, and not
+just upon reaching the very last three-element subset. The implementation has been fixed, though a
+trace of the recursive calls does not seem to yield results that align with my initial idea on
+solving the problem. Both public sample cases now solve without overflowing the stack, but I highly
+doubt the algorithm is correct. Still, it's worth submitting to determine whether I should further
+inspect the algorithm or if I should reimplement it anew.
+
+It seems the algorithm is correct, but execution does not terminate in under 1 second for a large
+enough test case. Maybe building up a memo table without preallocated storage can solve the problem,
+as there may be some sequences resulting from rotation operations that are computed multiple times.
+At present, I know not of a feasible upper bound on the number of states reachable outside the
+obvious $2^100$ permutations on the input sequence, so that is why no preallocated storage is
+reserved in advance.
+
+Using a memoization table does not seem to help either, as the solution continues to get TLE upon
+reaching the same sample case. This may be due to the fact the search space is made out of purely
+non-equivalent sequence permutations. If that is the case, then traditional DP won't help. Indeed,
+just running the largest of the two public sample cases already yields no repeated states. This is
+likely similar to the inversion index problem, and that one is not trivial to derive even in the
+obvious cases with a fairly simple sorting algorithm. The way to go is likely to consider the
+inversion index problem with a _doubly_-modified merge sort routine; Other than the expected
+modifications required to solve the inversion index problem, we may have to change merge sort for it
+to consider three-element rotations and not just two-element swaps.
+
 = Data structure implementations
 
 #include "segment-tree.typ"

@@ -3,41 +3,37 @@ use std::{
     ops::Range,
 };
 
-// 1 3 4 2
-//   [1 3 4] 2
-//     [4 1 3] 2
-//       [3 4 1] 2
-//     4 [1 3 2]
-//       4 [2 1 3]
-//         4 [3 2 1]
-//   1 [3 4 2]
-//     1 [2 3 4]
-//       1 [4 2 3]
-fn dp<'a>(mut refer: &'a [u32; 3], i: &'a [u32], f: &[u32], mut r: Range<usize>) -> bool {
+fn dp(mut refer: [u32; 3], i: &[u32], f: &[u32], mut r: Range<usize>) -> bool {
+    #[cfg(debug_assertions)]
+    eprintln!("on entry:\t{i:?}");
     if i == f {
         return true;
     }
+    let mut new_i = i.to_owned();
     for _ in 0..i.len() - 2 {
-        let mut new = i.to_owned();
-        let ss = &mut new[r.clone()];
+        let ss = &mut new_i[r.clone()];
         ss.rotate_right(1);
         if refer == ss {
             #[cfg(debug_assertions)]
-            eprintln!("refer:\t{refer:?}, sequence repeated:\t{new:?}");
+            eprintln!("refer:\t{refer:?}, sequence repeated:\t{new_i:?}");
             return false;
         }
         #[cfg(debug_assertions)]
-        eprintln!("refer:\t{refer:?}, sequence unrepeated:\t{new:?}");
-        if dp(refer, &new, f, r.clone()) {
+        eprintln!("refer:\t{refer:?}, sequence unrepeated:\t{new_i:?}");
+        if dp(refer, &new_i, f, r.clone()) {
             return true;
         }
+        #[cfg(debug_assertions)]
+        eprintln!("unwinding stack due to repeated sequence");
+        #[cfg(debug_assertions)]
+        eprintln!("back to:\t{new_i:?}");
         if r.start < i.len() - 3 {
             r.start += 1;
-        }
-        if r.end < i.len() {
             r.end += 1;
+        } else {
+            return false;
         }
-        refer = i[r.clone()].as_array().unwrap();
+        refer = *new_i[r.clone()].as_array().unwrap();
     }
     false
 }
@@ -76,7 +72,7 @@ fn main() {
     read!();
     proc!(f);
     let mut stdout = BufWriter::new(io::stdout().lock());
-    if dp(i[..3].as_array().unwrap(), &i, &f, 0..3) {
+    if dp(*i[..3].as_array().unwrap(), &i, &f, 0..3) {
         stdout.write_all(b"Possible\n").unwrap();
     } else {
         stdout.write_all(b"Impossible\n").unwrap();
