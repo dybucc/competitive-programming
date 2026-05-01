@@ -640,6 +640,12 @@ inversion index problem with a _doubly_-modified merge sort routine; Other than 
 modifications required to solve the inversion index problem, we may have to change merge sort for it
 to consider three-element rotations and not just two-element swaps.
 
+Solving by modifying merge sort does not seem trivial, as the subsequences that the input collection
+is divided by do not seem prone to 3-element checks. So far, the CLRS has been consulted to check my
+understanding of the #smallcaps[Merge] procedure in that algorithm, and, indeed, it seems that
+unless we consider merging only upon the subsequences having length 3, there is not much that is
+immediately obvious to me as being akin to the inversion index problem.
+
 = Data structure implementations
 
 #include "segment-tree.typ"
