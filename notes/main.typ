@@ -646,6 +646,33 @@ understanding of the #smallcaps[Merge] procedure in that algorithm, and, indeed,
 unless we consider merging only upon the subsequences having length 3, there is not much that is
 immediately obvious to me as being akin to the inversion index problem.
 
+Under the assumption that our current algorithm is correct (and not just accepted,) empirical
+testing has yield some insights into how this problem may be solved. If we modify the base case of
+merge sort to instead consider a two-element subsequence instead of a single-element subsequence, we
+can make some early assumptions about the feasibility of sorting the input collection without
+exploring the entirety of the search space.
+
+In the general case, for some sequence $S$, with indices $p:q$ denoting its element range, such
+sequence may be divided into two smaller subsequences $S_1$ and $S_2$, with indices $p:(p + q) / 2$
+and $(p + q) / 2 + 1:q$, respectively. Now, unlike regular merge sort, if $p + 1 equiv (p + q) / 2$
+or $(p + q) / 2 + 2 equiv q$, we have reached the base case of the recurrence relation. This holds
+irrespective of whether any one of $S_1$ or $S_2$ are correctly sorted.
+
+Then, upon entering the merging stage, we decide on which of the two subsequences to pick based on
+the final sorting order of the input collection. This final order is given by either the
+non-decreasing or non-increasing order of the output collection, itself provided in the program
+input parameters. If the output collection ought be sorted non-decreasingly, we must pick the
+subsequence whose leftmost index is largest. Otherwise, we must pick the subsequence whose rightmost
+index is largest.
+
+Once a "prioritizing" subsequence has been determined, we can proceed to perform the three-element
+rotation operation on the current collection. For the option of three-element subsets among our two
+subsequences, we must pick whichever of the two subsequences was not previously selected, and the
+rightmost element of the subsequence that got picked if such subsequence corresponds with the
+subsequence with largest leftmost indices, or the leftmost elements of the subsequence that got
+picked if such subsequence is the one with largest rightmost indices. Note that so far none of this
+is formally verified, and is only based on vague intuition resulting from observation.
+
 = Data structure implementations
 
 #include "segment-tree.typ"
