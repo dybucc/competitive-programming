@@ -666,7 +666,6 @@ input parameters. If the output collection ought be sorted non-decreasingly, we 
 subsequence whose leftmost index is largest. Otherwise, we must pick the subsequence whose rightmost
 index is largest.
 
-// 1 3 4 2
 Once a "prioritizing" subsequence has been determined, we can proceed to perform the three-element
 rotation operation on the current collection. For the option of three-element subsets among our two
 subsequences, we must pick whichever of the two subsequences was not previously selected, and the
@@ -680,10 +679,25 @@ collection can not go through keeping some elements in the running collection un
 be that there is some chance to derive some meaning about the possibility for "sortedness" from
 performing only a fraction of the operations, but I can't see it.
 
-Another idea that comes to mind is to instead go back to the original merging procedure for merge
-sort, but instead count inversion counts at more separate intervals. The rotation operation that we
-consider in this problem can be reduced to two steps of merge sort; Two consective swaps between
-three elements.
+// 1 3 4 2: 4 3 2 1
+// 4 3 1 2
+Another idea that comes to mind is to go back to the original merging procedure for merge sort, but
+instead count inversion operations at more separate intervals than in the original problem. The
+rotation operation that we consider in this problem can be reduced to two steps of merge sort; Two
+consective, reverse swaps between three elements. The issue here is that the swaps in the original
+merging operation do not necessarily converge into such a swap as is required for the three-element
+rotation. The rotation requires the swaps to be consecutive but, purely off of observation, swaps in
+merge sort are often disjoint in the elements/subsequences they swap. Moreover, such inversions
+would have to be counted differently, depending on whether the base case being merged considers a
+single element on each side or a sequence of elements.
+
+Even if we found some way of delaying the counting of inversion operations, there would still be
+issues with the type of swaps being performed. At the merge sort level, there is no limitation as to
+the order in which some two given elements are swapped. But in this particular problem, we always
+find that the rotation operation must follow two reverse swaps of three consecutive elements.
+Additionally, those swaps must always happen with at least one element that was still in its
+original position within the same merging step (hadn't been swapped before.) These constraints do
+not make the use of the merging procedure in merge sort any easier.
 
 = Data structure implementations
 
