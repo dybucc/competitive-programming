@@ -680,11 +680,23 @@ be that there is some chance to derive some meaning about the possibility for "s
 performing only a fraction of the operations, but I can't see it.
 
 // 1 3 4 2: 4 3 2 1
+// 3 1 4 2
 // 4 3 1 2
+// 4 3 2 1
+// 3 2 1 4: 1 2 3 4
+// 2 3 1 4
+// 1 2 3 4
+// 1 2 3 4
+// 1 2 3 4 5 6: 6 5 4 3 2 1
+// 2 1 4 3 6 5
+// 4 2 1 3 6 5
+// 4 3 2 1 6 5
+// 6 4 3 2 1 5
+// 6 5 4 3 2 1
 Another idea that comes to mind is to go back to the original merging procedure for merge sort, but
 instead count inversion operations at more separate intervals than in the original problem. The
 rotation operation that we consider in this problem can be reduced to two steps of merge sort; Two
-consective, reverse swaps between three elements. The issue here is that the swaps in the original
+consecutive, reverse swaps between three elements. The issue here is that the swaps in the original
 merging operation do not necessarily converge into such a swap as is required for the three-element
 rotation. The rotation requires the swaps to be consecutive but, purely off of observation, swaps in
 merge sort are often disjoint in the elements/subsequences they swap. Moreover, such inversions
@@ -696,8 +708,25 @@ issues with the type of swaps being performed. At the merge sort level, there is
 the order in which some two given elements are swapped. But in this particular problem, we always
 find that the rotation operation must follow two reverse swaps of three consecutive elements.
 Additionally, those swaps must always happen with at least one element that was still in its
-original position within the same merging step (hadn't been swapped before.) These constraints do
-not make the use of the merging procedure in merge sort any easier.
+original position within the same merging step (hadn't been swapped before when considering
+subsequences of only a fixed size.) These constraints do not make the use of the merging procedure
+in merge sort any easier.
+
+Maybe there's a pattern in the way the swapping operations take place when considering a case that
+is deemed possible by the current implementation. If we keep track of all three subsets in the input
+collection such that changes in the collection are reported to the corresponding subset view, we can
+count the number of swaps that happen in a given subset view, and keep track of whether it was two
+subset views that had the elements they watched over changed. More specifically, if one of the
+subsets observes two consecutive changes within it, followed by a change in any one of the other
+neighboring subsets, then surely a three-element rotation could have been executed as specified with
+the current algorithm. Formally, this is even less stable than the current recursive backtracking
+approach. The assumption is based off of an observation that may or may not hold for a general
+input, and it lacks a definition for a case of arbitrary length $n$.
+
+Maybe the solution is in using the short-circuiting part of the modified merging procedure in the
+more traditional instance of the inversion index problem. In that case, one can cassume that
+inversion will take place if the entirety of one of the sequences is either larger or smaller
+(depending on the desired sorting order) than the first element of the other subsequence.
 
 = Data structure implementations
 
