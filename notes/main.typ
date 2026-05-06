@@ -679,20 +679,6 @@ collection can not go through keeping some elements in the running collection un
 be that there is some chance to derive some meaning about the possibility for "sortedness" from
 performing only a fraction of the operations, but I can't see it.
 
-// 1 3 4 2: 4 3 2 1
-// 3 1 4 2
-// 4 3 1 2
-// 4 3 2 1
-// 3 2 1 4: 1 2 3 4
-// 2 3 1 4
-// 1 2 3 4
-// 1 2 3 4
-// 1 2 3 4 5 6: 6 5 4 3 2 1
-// 2 1 4 3 6 5
-// 4 2 1 3 6 5
-// 4 3 2 1 6 5
-// 6 4 3 2 1 5
-// 6 5 4 3 2 1
 Another idea that comes to mind is to go back to the original merging procedure for merge sort, but
 instead count inversion operations at more separate intervals than in the original problem. The
 rotation operation that we consider in this problem can be reduced to two steps of merge sort; Two
@@ -723,10 +709,55 @@ the current algorithm. Formally, this is even less stable than the current recur
 approach. The assumption is based off of an observation that may or may not hold for a general
 input, and it lacks a definition for a case of arbitrary length $n$.
 
-Maybe the solution is in using the short-circuiting part of the modified merging procedure in the
-more traditional instance of the inversion index problem. In that case, one can cassume that
+Maybe the solution is in using the short-circuiting property of the modified merging procedure from
+the more traditional instance of the inversion index problem. In that case, one can cassume that
 inversion will take place if the entirety of one of the sequences is either larger or smaller
-(depending on the desired sorting order) than the first element of the other subsequence.
+(depending on the desired sorting order) than the first element of the other subsequence. This
+allows skipping through the computation of a few elements' worth of checking whether the element to
+be swapped and the element with which to swap hold a relation of "smaller than." Still, it does not
+make the problem any simpler, as there does not seem be any way of determining when is it that the
+rotation operation has taken place in the sequence of two-element swaps that merge sort performs.
+
+Attempting to solve the problem in terms of a reduction from this problem to the inversion index
+problem has not yield any results, even after trying for days. We should instead attempt to improve
+the current algorithm or come up with a new one. The current implementation finds the solution by
+exploring the entirety of the search space. The initial assumption that was made upon finishing the
+algorithm was that the search space had already been pruned by virtue of requiring a rotation
+operation and not a regular sequence permutation. Apparently, there is some test case for which the
+current solution is still running in over 1 s. This performance limitation likely means the rotation
+operation does not limit the search space enough from the initial $2^n$ permutations for
+$3 <= n <= 100,000$. Before attempting to solve the problem with a reduction from the inversion
+index problem, we were unable to find out even an estimate on the time complexity class that the
+algorithm was part of. One thing is clear, though, and that is that permutations do not allow for
+memoization; Three-element rotations do not seem to either, as proven by experimentation with a
+static table. We may find that the algorithm running time can be improved by analyzing its time
+complexity.
+
+Provided an input sequence with $n$ elements, the recurrence relation that the algorithm models is
+one where the running state kept throughout routine calls is given by the following definitions.
+- A subset $i$ of cardinality 3, where the current three-element permutation is carried through.
+- A subset `refer` of cardinality 3, where the original three-element permutation of the
+  three-element subset in $i$ is stored. This subset denotes the starting permutation $i_0$ from
+  which $i$ was produced. The logic behind this is proven next.
+
+  Consider a three-element permutation $s$, resulting from having performed the rotation operation
+  on a set $S$, where $|S| >= |s|$. Let the cardinality of set $S$ be given by some $n$. If the
+  operation were simply a three-element shuffle permutation, one could enumerate the total number of
+  different three-element subsets $s_1, s_2, dots, s_(2^n)$. The three-element rotation vastly
+  reduces this number down to three possible subset permutations, themselves dependent on the
+  initial configuration of the ordered set.
+
+  This holds because for some three-element subset ${a, b, c}$, it always holds that resulting
+  rotation is equivalent to two consecutive element swaps. The first one, between the last element
+  of the ordered set and the second element, yields subset ${a, c, b}$; The second one, between the
+  second and first elements of the current set, yields subset ${c, a, b}$.
+// TODO: finish up defining the rotation operation and half-assing a proof on the correctness of
+// the argument in favor of there only being three possible variations of a given subset with
+// cardinality 3 when using the rotation operation.
+- A range $r$ denoting the position indices of elements in the $n$-cardinality input set. This range
+  can be seen as taking on the values of the first and last element of a three-element subset of its
+  own. Only unlike the prior subsets, it is not sourced from the input set, but rather from a set
+  resulting from sorting non-decreasingly the input set.
 
 = Data structure implementations
 

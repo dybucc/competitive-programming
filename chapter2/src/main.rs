@@ -4,8 +4,6 @@ use std::{
 };
 
 fn dp(mut refer: [u32; 3], i: &[u32], f: &[u32], mut r: Range<usize>) -> bool {
-    #[cfg(debug_assertions)]
-    eprintln!("on entry:\t{i:?}");
     if i == f {
         return true;
     }
@@ -14,19 +12,11 @@ fn dp(mut refer: [u32; 3], i: &[u32], f: &[u32], mut r: Range<usize>) -> bool {
         let ss = &mut new_i[r.clone()];
         ss.rotate_right(1);
         if refer == ss {
-            #[cfg(debug_assertions)]
-            eprintln!("refer:\t{refer:?}, sequence repeated:\t{new_i:?}");
             return false;
         }
-        #[cfg(debug_assertions)]
-        eprintln!("refer:\t{refer:?}, sequence unrepeated:\t{new_i:?}");
         if dp(refer, &new_i, f, r.clone()) {
             return true;
         }
-        #[cfg(debug_assertions)]
-        eprintln!("unwinding stack due to repeated sequence");
-        #[cfg(debug_assertions)]
-        eprintln!("back to:\t{new_i:?}");
         if r.start < i.len() - 3 {
             r.start += 1;
             r.end += 1;
@@ -59,7 +49,7 @@ fn main() {
         ($c:expr) => {
             buf.split_ascii_whitespace()
                 .map(str::parse::<u32>)
-                .map(|res| res.unwrap())
+                .map(Result::unwrap)
                 .for_each(|num| $c.push(num))
         };
     }
