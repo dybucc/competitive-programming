@@ -733,43 +733,6 @@ memoization; Three-element rotations do not seem to either, as proven by experim
 static table. We may find that the algorithm running time can be improved by analyzing its time
 complexity.
 
-Provided an input sequence with $n$ elements, the recurrence relation that the algorithm models is
-one where the running state kept throughout routine calls is given by the following definitions.
-- A subset $i$ of cardinality 3, where the current three-element permutation is carried through.
-- A subset `refer` of cardinality 3, where the original three-element permutation of the
-  three-element subset in $i$ is stored. This subset denotes the starting permutation $i_0$ from
-  which $i$ was produced. The logic behind this is proven next.
-
-  Consider a three-element permutation $s$, resulting from having performed the rotation operation
-  on a set $S$, where $|S| >= |s|$. Let the cardinality of set $S$ be given by some $n$. If the
-  operation were simply a three-element shuffle permutation, one could enumerate the total number of
-  different three-element subsets $s_1, s_2, dots, s_(2^n)$. The three-element rotation vastly
-  reduces this number down to three possible subset permutations, themselves dependent on the
-  initial configuration of the ordered set.
-
-  This holds because for some three-element subset ${a, b, c}$, it always holds that the resulting
-  rotation is equivalent to two consecutive element swaps. We shall define this in terms of a series
-  later on. The first one, between the last element of the ordered set and the second element,
-  yields subset ${a, c, b}$; The second one, between the second and first elements of the current
-  set, yields subset ${c, a, b}$. If we perform a new rotation, the resulting subset would be
-  ${b, c, a}$. This final state shows the second possible permutation of the ordered set. Following
-  this logic, one can derive that the next permutation that the rotation operation would produce is
-  equivalent to the initial state of the three-element subset with which we started off. Thus, we
-  can conclude that provided some ordered set $s$ where $|s| = 3$, the rotation operation is defined
-  as an ordered infinite series of sets ${s, s', s'', s, dots, s', dots, s''}$. This series is
-  composed of a specific set of permutations of set $s$, as described above. If we consider a
-  mapping $f$ of elements in the series to natural numbers, such that $f: S -> NN$ yields an
-  equivalent numerical order of the element in the series, application of $f$ with $s$ would yield
-  another series ${0, 3, 6, dots}$. Analogously, application of $f$ with $s'$ would yield another
-  infinite series ${1, 4, 7, dots}$.
-
-  This proof will now stop, as I must research further into dependent type theory to truly provide a
-  correct proof of the correctness of the algorithm, or otherwise show its incorrectness.
-- A range $r$ denoting the position indices of elements in the $n$-cardinality input set. This range
-  can be seen as taking on the values of the first and last element of a three-element subset of its
-  own. Only unlike the prior subsets, it is not sourced from the input set, but rather from a set
-  resulting from sorting non-decreasingly the input set.
-
 = Data structure implementations
 
 #include "segment-tree.typ"
