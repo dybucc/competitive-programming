@@ -3,6 +3,20 @@ use std::{
     ops::Range,
 };
 
+// 1 3 2 4 -> 4 3 2 1
+// 1a 3b 2c 4d -> 4d 3b 2c 1a: impossible
+// 1 4 2 3 -> 4 3 2 1
+// 1a 4b 2c 3d -> 4b 3d 2c 1a: possible
+// 4 1 2 3 -> 4 3 2 1
+// 4a 1b 2c 3d -> 4a 3d 2c 1b: impossible
+// 4 2 3 1 -> 4 3 2 1
+// 4a 2b 3c 1d -> 4a 3c 2b 1d: impossible
+// 4 1 3 2 -> 4 3 2 1
+// 4a 1b 3c 2d -> 4a 3c 2d 1b: impossible
+// 4 3 1 2 -> 4 3 2 1
+// 4a 3b 1c 2d -> 4a 3b 2d 1c: impossible
+// 1 2 4 3 -> 4 3 2 1
+// 1a 2b 4c 3d -> 4c 3d 2b 1a: impossible
 fn dp(mut refer: [u32; 3], i: &[u32], f: &[u32], mut r: Range<usize>) -> bool {
     if i == f {
         return true;
