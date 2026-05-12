@@ -730,8 +730,8 @@ $3 <= n <= 100,000$. Before attempting to solve the problem with a reduction fro
 index problem, we were unable to find out even an estimate on the time complexity class that the
 algorithm was part of. One thing is clear, though, and that is that permutations do not allow for
 memoization; Three-element rotations do not seem to either, as proven by experimentation with a
-static table. We may find that the algorithm running time can be improved by analyzing its time
-complexity.
+global table that got added the rotated sequences whenever the result of one such rotation was
+deemed to be unique.
 
 = Data structure implementations
 
