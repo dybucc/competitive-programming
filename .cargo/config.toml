@@ -1,0 +1,2 @@
+[alias]
+bread-checker = "run --package checker --"

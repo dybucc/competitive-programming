@@ -5,6 +5,7 @@ alias r := run
 alias t := test
 alias s := show
 alias d := debug
+alias dn := debug-non
 
 cargo := require("cargo")
 delta := require("delta")

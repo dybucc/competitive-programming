@@ -3,167 +3,77 @@
 use std::{
     cmp::Reverse,
     env,
-    ffi::OsString,
     fmt::Write as FmtWrite,
-    fs,
+    fs::File,
     io::{self, BufWriter, Write as IoWrite},
     process::{Command, Stdio},
+    sync::Mutex,
 };
 
-use anyhow::{anyhow, bail};
+use anyhow::{Context, anyhow};
 use clap::Parser;
 use itertools::Itertools;
 use tracing::info;
 
-// TODO: reorganize this into modules and refactor manual argument handling, and
-// get this to follow the `xtask` pattern.
+use crate::args::{Args, SortOrderKind};
 
-#[derive(Debug, Parser)]
-#[command(
-    disable_version_flag = true,
-    disable_help_subcommand = true,
-    disable_colored_help = true,
-    about = None,
-    long_about = None,
-)]
-struct Args {
-    /// Input collection to sort and check the output of its permutations.
-    input: String,
-    #[arg(short, long, conflicts_with = "descendingly")]
-    ascendingly: bool,
-    #[arg(short, long, conflicts_with = "ascendingly")]
-    descendingly: bool,
-}
+mod args;
+mod repr;
 
-impl Args {
-    fn input(&self) -> impl AsRef<str> {
-        let Self { input, .. } = self;
-
-        input
-    }
-
-    fn sort_order(&self) -> SortOrder {
-        let Self { ascendingly, .. } = *self;
-
-        if ascendingly {
-            return SortOrder::new(SortOrderKind::Ascendingly);
-        }
-
-        SortOrder::new(SortOrderKind::Descendingly)
-    }
-}
-
-#[derive(Debug)]
-struct SortOrder {
-    repr: SortOrderRepr,
-}
-
-impl SortOrder {
-    fn new(order: SortOrderKind) -> Self {
-        match order {
-            SortOrderKind::Ascendingly => Self {
-                repr: SortOrderRepr::Ascendingly,
-            },
-            SortOrderKind::Descendingly => Self {
-                repr: SortOrderRepr::Descendingly,
-            },
-        }
-    }
-
-    fn order(&self) -> SortOrderKind {
-        let Self { repr } = self;
-
-        repr.map_public()
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum SortOrderKind {
-    Ascendingly,
-    Descendingly,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum SortOrderRepr {
-    Ascendingly,
-    Descendingly,
-}
-
-impl Repr for SortOrderRepr {
-    type Public = SortOrderKind;
-
-    fn map_public(&self) -> <Self as Repr>::Public {
-        match self {
-            Self::Ascendingly => SortOrderKind::Ascendingly,
-            Self::Descendingly => SortOrderKind::Descendingly,
-        }
-    }
-}
-
-trait Repr {
-    type Public;
-
-    fn map_public(&self) -> <Self as Repr>::Public;
-}
+// FIXME: there's an issue with the way we capture output from the command we
+// launch for the binary checker, as instead of silently getting the stdout into
+// a sink of our own, it's outputting the `stdout` of each launched child
+// process.
 
 #[tracing::instrument(err(level = "info"))]
 fn main() -> anyhow::Result<()> {
-    let mut args = Args::parse();
-    let mut args = env::args_os();
+    if cfg!(debug_assertions) {
+        macro_rules! init_msg {
+            () => {
+                "failed to initialize logging facilities"
+            };
+        }
+
+        tracing_subscriber::fmt()
+            .with_line_number(false)
+            .with_thread_ids(false)
+            .with_ansi(false)
+            .with_target(false)
+            .with_level(false)
+            .with_file(false)
+            .with_thread_names(false)
+            .without_time()
+            .with_writer(Mutex::new(
+                File::create(
+                    env::current_dir()
+                        .map(|pwd| pwd.join("debug.log"))
+                        .context(init_msg!())?,
+                )
+                .context(init_msg!())?,
+            ))
+            .init();
+    }
+
+    let args = Args::parse();
 
     info!(?args);
 
-    let input = args
-        .nth(1)
-        .map(OsString::into_string)
-        .map(|res| {
-            res.map_err(|_| {
-                anyhow!(
-                    "cli args should contain input collection to permute with \
-                     whitespace-separated digits"
-                )
-            })
-        })
-        .ok_or_else(|| {
-            anyhow!(
-                "cli args should contain input collection to permute with whitespace-separated \
-                 digits"
-            )
-        })??;
+    let input = args.input();
+    let sort_order = args.sort_order();
+    let dir = args.dir()?;
 
-    info!(input);
+    info!(input = input.as_ref(), ?sort_order, dir = %dir.display());
 
-    let sort_order = args
-        .next()
-        .map(OsString::into_string)
-        .map(|res| {
-            res.map_err(|_| anyhow!("cli args should contian sort order of final collection"))
-        })
-        .ok_or_else(|| anyhow!("cli args should contian sort order of final collection"))??;
-
-    info!(sort_order);
-
-    let dir = args
-        .next()
-        .map(fs::canonicalize)
-        .ok_or_else(|| anyhow!("cli args should contain dir of binary to test"))??;
-
-    info!(dir = ?dir.display());
-
-    let ascendingly = if sort_order == "-a" {
-        true
-    } else if sort_order == "-d" {
-        false
-    } else {
-        bail!("sort order option should be one of `-a` or `-d`");
-    };
     let input = input
-        .trim()
+        .as_ref()
         .split_ascii_whitespace()
         .map(str::parse)
         .map(|res| {
             res.map_err(|_| {
-                anyhow!("input collection should contain only whitespace-separated sequences")
+                anyhow!(
+                    "input collection should contain only whitespace-separated integer radix 10 \
+                     digits"
+                )
             })
         })
         .collect::<anyhow::Result<Vec<usize>>>()?;
@@ -173,10 +83,9 @@ fn main() -> anyhow::Result<()> {
     let mut stdout = BufWriter::new(io::stdout().lock());
     let mut sorted = input.clone();
 
-    if ascendingly {
-        sorted.sort_unstable();
-    } else {
-        sorted.sort_unstable_by_key(|n| Reverse(*n));
+    match sort_order.order() {
+        SortOrderKind::Ascendingly => sorted.sort_unstable(),
+        SortOrderKind::Descendingly => sorted.sort_unstable_by_key(|n| Reverse(*n)),
     }
 
     info!(sorted_input = ?sorted);
@@ -208,10 +117,11 @@ fn main() -> anyhow::Result<()> {
                 .args(["r", "--", &input])
                 .current_dir(&dir)
                 .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
                 .spawn()?;
 
             if let Some(mut stdin) = cmd.stdin.take() {
-                stdin.write_all(input.as_bytes())?;
+                write!(stdin, "{input}")?;
             }
 
             let out = String::from_utf8_lossy_owned(cmd.wait_with_output()?.stdout);
@@ -220,6 +130,6 @@ fn main() -> anyhow::Result<()> {
 
             write!(stdout, "perm = {perm:?}, sol = {out}")?;
 
-            Ok::<_, anyhow::Error>(())
+            Ok(())
         })
 }
