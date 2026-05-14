@@ -15,8 +15,9 @@ pub(crate) use crate::args::sort_order::{SortOrder, SortOrderKind};
     long_about = None,
 )]
 pub(crate) struct Args {
-    /// Input collection to sort and check the output of its permutations.
-    input: String,
+    /// Length of the input collection to sort and check the permutations of
+    /// against its non-increasingly or non-decreasinly sorted order.
+    max: usize,
     /// Whether to sort the input collection ascendingly. Is exclusive with
     /// `--descendingly`.
     #[arg(short, long, required = true, conflicts_with = "descendingly")]
@@ -28,13 +29,17 @@ pub(crate) struct Args {
     /// The directory of the binary to execute. Leave empty to use the pwd.
     #[arg(long, value_name = "PATH")]
     directory: Option<String>,
+    /// File to save the result of permuting the collection. Leave empty to not
+    /// avoid saving a symbolic representation of the permutation.
+    #[arg(short, long, value_name = "PATH")]
+    perms_file: Option<String>,
 }
 
 impl Args {
-    pub(crate) fn input(&self) -> impl AsRef<str> {
-        let Self { input, .. } = self;
+    pub(crate) fn cap(&self) -> usize {
+        let Self { max, .. } = *self;
 
-        input
+        max
     }
 
     pub(crate) fn sort_order(&self) -> SortOrder {

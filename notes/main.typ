@@ -733,6 +733,11 @@ memoization; Three-element rotations do not seem to either, as proven by experim
 global table that got added the rotated sequences whenever the result of one such rotation was
 deemed to be unique.
 
+Current efforts are focused on finding a pattern in the way the permutations of a given $n$-length
+input collection behave with respect to the 3-element rotation operation. This may yield answers as
+to a shorter (and thus more efficient) way of checking if sorting the input set is feasible provided
+the problem's constraints.
+
 = Data structure implementations
 
 #include "segment-tree.typ"

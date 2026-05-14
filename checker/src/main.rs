@@ -1,4 +1,4 @@
-#![feature(string_from_utf8_lossy_owned)]
+#![feature(exit_status_error, string_from_utf8_lossy_owned)]
 
 use std::{
     cmp::Reverse,
@@ -10,7 +10,7 @@ use std::{
     sync::Mutex,
 };
 
-use anyhow::{Context, anyhow};
+use anyhow::Context;
 use clap::Parser;
 use itertools::Itertools;
 use tracing::info;
@@ -20,10 +20,13 @@ use crate::args::{Args, SortOrderKind};
 mod args;
 mod repr;
 
-// FIXME: there's an issue with the way we capture output from the command we
-// launch for the binary checker, as instead of silently getting the stdout into
-// a sink of our own, it's outputting the `stdout` of each launched child
-// process.
+// Symbolic representation of results on permutations.
+// 4 element permutation:
+// - - - + + - - + - - - + - - - + + - - - - - - +
+
+// TODO: implement a "translation" to the above symbolic representation after
+// having computed the permutations and check if there are patterns in that
+// representation.
 
 #[tracing::instrument(err(level = "info"))]
 fn main() -> anyhow::Result<()> {
@@ -51,85 +54,65 @@ fn main() -> anyhow::Result<()> {
                 )
                 .context(init_msg!())?,
             ))
-            .init();
+            .try_init()
+            .map_err(anyhow::Error::from_boxed)?;
     }
 
     let args = Args::parse();
 
     info!(?args);
 
-    let input = args.input();
+    let cap = args.cap();
     let sort_order = args.sort_order();
     let dir = args.dir()?;
 
-    info!(input = input.as_ref(), ?sort_order, dir = %dir.display());
-
-    let input = input
-        .as_ref()
-        .split_ascii_whitespace()
-        .map(str::parse)
-        .map(|res| {
-            res.map_err(|_| {
-                anyhow!(
-                    "input collection should contain only whitespace-separated integer radix 10 \
-                     digits"
-                )
-            })
-        })
-        .collect::<anyhow::Result<Vec<usize>>>()?;
-
-    info!(proc_input = ?input);
-
     let mut stdout = BufWriter::new(io::stdout().lock());
-    let mut sorted = input.clone();
-
-    match sort_order.order() {
-        SortOrderKind::Ascendingly => sorted.sort_unstable(),
-        SortOrderKind::Descendingly => sorted.sort_unstable_by_key(|n| Reverse(*n)),
-    }
+    let sorted: Vec<_> = match sort_order.order() {
+        SortOrderKind::Ascendingly => (1..=cap).sorted_unstable().collect(),
+        SortOrderKind::Descendingly => (1..=cap).sorted_unstable_by_key(|n| Reverse(*n)).collect(),
+    };
 
     info!(sorted_input = ?sorted);
 
-    input
-        .iter()
-        .copied()
-        .permutations(input.len())
-        .try_for_each(|perm| {
-            info!(?perm);
+    let perms: Vec<_> = (1..=cap).permutations(cap).collect();
 
-            let input = perm
-                .iter()
-                .enumerate()
-                .chain(sorted.iter().enumerate())
-                .fold(format!("{}\n", perm.len()), |mut out, (i, num)| {
-                    if i == perm.len() - 1 {
-                        writeln!(out, "{num}").unwrap();
-                    } else {
-                        write!(out, "{num} ").unwrap();
-                    }
+    perms.iter().try_for_each(|perm| {
+        info!(?perm);
 
-                    out
-                });
+        let input = perm
+            .iter()
+            .enumerate()
+            .chain(sorted.iter().enumerate())
+            .fold(format!("{}\n", perm.len()), |mut out, (i, num)| {
+                if i == perm.len() - 1 {
+                    writeln!(out, "{num}").unwrap();
+                } else {
+                    write!(out, "{num} ").unwrap();
+                }
 
-            info!(stringified_perm = input);
+                out
+            });
 
-            let mut cmd = Command::new("cargo")
-                .args(["r", "--", &input])
-                .current_dir(&dir)
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn()?;
+        info!(stringified_perm = input);
 
-            if let Some(mut stdin) = cmd.stdin.take() {
-                write!(stdin, "{input}")?;
-            }
+        let mut cmd = Command::new("cargo")
+            .args(["r", "--", &input])
+            .current_dir(&dir)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()?;
 
-            let out = String::from_utf8_lossy_owned(cmd.wait_with_output()?.stdout);
+        if let Some(mut stdin) = cmd.stdin.take() {
+            write!(stdin, "{input}")?;
+        }
 
-            info!(stdout = out);
+        let out = String::from_utf8_lossy_owned(cmd.wait_with_output()?.exit_ok()?.stdout);
 
-            write!(stdout, "perm = {perm:?}, sol = {out}")?;
+        info!(checker_sol = out);
 
-            Ok(())
-        })
+        write!(stdout, "perm = {perm:?}, sol = {out}")?;
+
+        Ok(())
+    })
 }
