@@ -19,9 +19,11 @@ use crate::args::{Args, SortOrderKind};
 
 mod args;
 mod repr;
+mod translator;
 
 // Symbolic representation of results on permutations.
 // 4 element permutation:
+// i i i p p i i p i i i p i i i p p i i i i i i p
 // - - - + + - - + - - - + - - - + + - - - - - - +
 
 // TODO: implement a "translation" to the above symbolic representation after
