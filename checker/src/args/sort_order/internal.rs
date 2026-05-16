@@ -1,7 +1,7 @@
 use crate::{args::sort_order::SortOrderKind, repr::Repr};
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum SortOrderRepr {
+pub(super) enum SortOrderRepr {
     Ascendingly,
     Descendingly,
 }

@@ -4,13 +4,13 @@ mod internal;
 
 use crate::args::sort_order::internal::SortOrderRepr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct SortOrder {
     repr: SortOrderRepr,
 }
 
 impl SortOrder {
-    pub(crate) fn new(order: SortOrderKind) -> Self {
+    pub(super) fn new(order: SortOrderKind) -> Self {
         match order {
             SortOrderKind::Ascendingly => Self {
                 repr: SortOrderRepr::Ascendingly,

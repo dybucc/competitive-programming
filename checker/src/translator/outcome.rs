@@ -1,16 +1,14 @@
-use self::internal::OutcomeRepr;
-
-mod internal;
+use std::borrow::Cow;
 
 #[derive(Debug)]
 pub(super) struct Outcome {
-    repr: OutcomeRepr,
+    inner: Cow<'static, str>,
 }
 
 impl Outcome {
     pub(super) fn from_str(slice: impl AsRef<str>) -> Self {
         Self {
-            repr: OutcomeRepr::new(slice),
+            inner: slice.as_ref().to_string().into(),
         }
     }
 }

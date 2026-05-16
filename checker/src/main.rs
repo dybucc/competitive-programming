@@ -33,12 +33,6 @@ mod translator;
 #[tracing::instrument(err(level = "info"))]
 fn main() -> anyhow::Result<()> {
     if cfg!(debug_assertions) {
-        macro_rules! init_msg {
-            () => {
-                "failed to initialize logging facilities"
-            };
-        }
-
         tracing_subscriber::fmt()
             .with_line_number(false)
             .with_thread_ids(false)
@@ -48,14 +42,12 @@ fn main() -> anyhow::Result<()> {
             .with_file(false)
             .with_thread_names(false)
             .without_time()
-            .with_writer(Mutex::new(
-                File::create(
-                    env::current_dir()
-                        .map(|pwd| pwd.join("debug.log"))
-                        .context(init_msg!())?,
-                )
-                .context(init_msg!())?,
-            ))
+            .with_writer(
+                env::current_dir()
+                    .and_then(|pwd| File::create(pwd.join("debug.log")))
+                    .map(Mutex::new)
+                    .context("failed to initialize logging facilities")?,
+            )
             .try_init()
             .map_err(anyhow::Error::from_boxed)?;
     }
