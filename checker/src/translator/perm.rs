@@ -70,7 +70,7 @@ impl Perm {
 
         cmd.stdin
             .take()
-            .map(|mut stdin| stdin.write_all(byteified.trim_ascii()));
+            .map(|mut stdin| stdin.write_all(&byteified));
 
         Ok(Outcome::from_str(
             String::from_utf8_lossy_owned(cmd.wait_with_output()?.stdout).trim(),

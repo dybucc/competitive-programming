@@ -1,11 +1,11 @@
 #![feature(exit_status_error, string_from_utf8_lossy_owned)]
 
 use std::{
-    cmp::Reverse,
     env,
     fmt::Write as FmtWrite,
-    fs::File,
+    fs::{self, File},
     io::{self, BufWriter, Write as IoWrite},
+    path::Path,
     process::{Command, Stdio},
     sync::Mutex,
 };
@@ -15,7 +15,10 @@ use clap::Parser;
 use itertools::Itertools;
 use tracing::info;
 
-use crate::args::{Args, SortOrderKind};
+use crate::{
+    args::{Args, SortOrder},
+    translator::Translator,
+};
 
 mod args;
 mod repr;
@@ -25,10 +28,6 @@ mod translator;
 // 4 element permutation:
 // i i i p p i i p i i i p i i i p p i i i i i i p
 // - - - + + - - + - - - + - - - + + - - - - - - +
-
-// TODO: implement a "translation" to the above symbolic representation after
-// having computed the permutations and check if there are patterns in that
-// representation.
 
 #[tracing::instrument(err(level = "info"))]
 fn main() -> anyhow::Result<()> {
@@ -61,15 +60,14 @@ fn main() -> anyhow::Result<()> {
     let dir = args.dir()?;
 
     let mut stdout = BufWriter::new(io::stdout().lock());
-    let sorted: Vec<_> = match sort_order.order() {
-        SortOrderKind::Ascendingly => (1..=cap).sorted_unstable().collect(),
-        SortOrderKind::Descendingly => (1..=cap).sorted_unstable_by_key(|n| Reverse(*n)).collect(),
-    };
-
-    info!(sorted_input = ?sorted);
-
     let perms: Vec<_> = (1..=cap).permutations(cap).collect();
 
+    if let Some(perms_file) = args.perms_fie() {
+        with_perms_file(perms_file, &dir, sort_order, perms.clone())?;
+    }
+
+    // TODO: finish up tweaking this part to adapt to the changes to work with the
+    // translator interface.
     perms.iter().try_for_each(|perm| {
         info!(?perm);
 
@@ -109,4 +107,21 @@ fn main() -> anyhow::Result<()> {
 
         Ok(())
     })
+}
+
+fn with_perms_file(
+    path: impl AsRef<Path>,
+    bin_dir: impl AsRef<Path>,
+    order: SortOrder,
+    perms: Vec<Vec<usize>>,
+) -> anyhow::Result<()> {
+    let mut translator = Translator::new(order);
+
+    translator.extend(perms);
+
+    let translated = translator.translate_all().check(bin_dir)?;
+
+    fs::write(path, translated)?;
+
+    Ok(())
 }

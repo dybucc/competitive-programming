@@ -1,7 +1,7 @@
-use std::path::Path;
+use std::{fmt::Write, path::Path};
 
 use super::Perm;
-use crate::args::SortOrder;
+use crate::{args::SortOrder, translator::OutcomeKind};
 
 #[derive(Debug)]
 pub(crate) struct Translated<'a> {
@@ -10,23 +10,36 @@ pub(crate) struct Translated<'a> {
 }
 
 impl<'a> Translated<'a> {
-    pub(crate) fn new(input: &'a [Perm], order: SortOrder) -> Self {
+    pub(super) fn new(input: &'a [Perm], order: SortOrder) -> Self {
         Self {
             src: input,
             sorted: input.first().map(|perm| perm.sort(order)).unwrap(),
         }
     }
 
-    pub(crate) fn check(&mut self, bin_dir: impl AsRef<Path>) -> anyhow::Result<()> {
+    pub(crate) fn check(&mut self, bin_dir: impl AsRef<Path>) -> anyhow::Result<String> {
         let Self { src, sorted } = self;
 
-        // TODO: finish up this routine, and perform further processing of the `input`
-        // argument in the `Args` type.
         let outcomes = src
             .iter()
             .map(|perm| perm.check(&bin_dir, sorted))
             .collect::<anyhow::Result<Vec<_>>>()?;
 
-        Ok(())
+        let mut out = outcomes
+            .into_iter()
+            .try_fold(String::new(), |mut out, outcome| {
+                outcome.with(|outcome| {
+                    match outcome {
+                        OutcomeKind::Possible => write!(out, "+")?,
+                        OutcomeKind::Impossible => write!(out, "-")?,
+                    }
+
+                    anyhow::Ok(out)
+                })
+            })?;
+
+        writeln!(out)?;
+
+        todo!()
     }
 }

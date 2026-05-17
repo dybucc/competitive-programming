@@ -1,4 +1,8 @@
-use std::{borrow::Cow, env, path::Path};
+use std::{
+    borrow::Cow,
+    env,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
 
@@ -61,6 +65,14 @@ impl Args {
             Ok(Path::new(path).into())
         } else {
             env::current_dir().map(Into::into).map_err(Into::into)
+        }
+    }
+
+    pub(crate) fn perms_fie(&self) -> Option<PathBuf> {
+        if let Some(path) = &self.perms_file {
+            PathBuf::from(path.clone()).into()
+        } else {
+            Option::default()
         }
     }
 }

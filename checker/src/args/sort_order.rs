@@ -21,7 +21,7 @@ impl SortOrder {
         }
     }
 
-    pub(crate) fn order(&self) -> SortOrderKind {
+    pub(crate) fn order(self) -> SortOrderKind {
         let Self { repr } = self;
 
         repr.map_public()

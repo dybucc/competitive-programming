@@ -6,7 +6,7 @@ mod perm;
 mod translated;
 
 use self::outcome::Outcome;
-pub(crate) use self::translated::Translated;
+pub(crate) use self::{outcome::OutcomeKind, translated::Translated};
 
 #[derive(Debug)]
 pub(crate) struct Translator {
@@ -38,5 +38,11 @@ impl Translator {
         inner.push(Perm::new(perm));
 
         self
+    }
+}
+
+impl Extend<Vec<usize>> for Translator {
+    fn extend<T: IntoIterator<Item = Vec<usize>>>(&mut self, iter: T) {
+        iter.into_iter().for_each(|perm| _ = self.add(perm));
     }
 }
