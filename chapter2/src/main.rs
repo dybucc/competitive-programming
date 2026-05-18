@@ -77,9 +77,9 @@ fn main() {
     proc!(f);
     let mut stdout = BufWriter::new(io::stdout().lock());
     if dp(*i[..3].as_array().unwrap(), &i, &f, 0..3) {
-        stdout.write_all(b"Possible\n").unwrap();
+        writeln!(stdout, "Possible").unwrap();
     } else {
-        stdout.write_all(b"Impossible\n").unwrap();
+        writeln!(stdout, "Impossible").unwrap();
     }
     stdout.flush().unwrap();
 }

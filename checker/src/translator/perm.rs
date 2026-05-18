@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::anyhow;
+use tracing::info;
 
 use super::Outcome;
 use crate::args::{SortOrder, SortOrderKind};
@@ -37,44 +38,54 @@ impl Perm {
         let mut cmd = Command::new(
             env::var_os("CARGO")
                 .map(|cargo_bin| String::from_utf8_lossy_owned(cargo_bin.into_encoded_bytes()))
-                .ok_or_else(|| anyhow!("failed to fetch binary for cargo through `$CARGO`"))?,
+                .ok_or_else(|| anyhow!("cargo binary was not set in `$CARGO`"))?,
         )
-        .args(["r"])
+        .arg("r")
         .current_dir(bin_dir)
         .stderr(Stdio::null())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
 
-        let Self { inner } = self;
+        debug_assert_eq!(self.inner.len(), sorted.len());
 
-        debug_assert_eq!(inner.len(), sorted.len());
-
-        let mut byteified = Vec::with_capacity(2 + 4 * inner.len());
-
-        writeln!(byteified, "{}", inner.len())?;
-
-        inner
+        let byteified = self
+            .inner
             .iter()
             .enumerate()
             .chain(sorted.iter().enumerate())
-            .try_for_each(|(i, num)| {
-                if i == inner.len() - 1 {
-                    writeln!(byteified, "{num}")?;
-                } else {
-                    write!(byteified, "{num} ")?;
-                }
+            .try_fold(
+                {
+                    let mut out = Vec::with_capacity(2 + 4 * self.inner.len());
 
-                anyhow::Ok(())
-            })?;
+                    writeln!(out, "{}", self.inner.len())?;
+
+                    out
+                },
+                |mut out, (i, num)| {
+                    if i == self.inner.len() - 1 {
+                        writeln!(out, "{num}")?;
+                    } else {
+                        write!(out, "{num} ")?;
+                    }
+
+                    anyhow::Ok(out)
+                },
+            )?;
+
+        info!(
+            perm = ?self.inner,
+            byteified_repr = String::from_utf8_lossy_owned(byteified.clone()),
+        );
 
         cmd.stdin
             .take()
             .map(|mut stdin| stdin.write_all(&byteified));
 
-        Ok(Outcome::from_str(
-            String::from_utf8_lossy_owned(cmd.wait_with_output()?.stdout).trim(),
-        ))
+        let out = String::from_utf8_lossy_owned(cmd.wait_with_output()?.exit_ok()?.stdout);
+        info!(cmd_output = out);
+
+        Ok(Outcome::from_str(out.trim()))
     }
 
     pub(super) fn new(inner: Vec<usize>) -> Self {

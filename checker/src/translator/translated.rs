@@ -1,5 +1,7 @@
 use std::{fmt::Write, path::Path};
 
+use tracing::info;
+
 use super::Perm;
 use crate::{args::SortOrder, translator::OutcomeKind};
 
@@ -18,11 +20,15 @@ impl<'a> Translated<'a> {
     }
 
     pub(crate) fn check(&mut self, bin_dir: impl AsRef<Path>) -> anyhow::Result<String> {
-        let Self { src, sorted } = self;
-
-        let outcomes = src
+        let outcomes = self
+            .src
             .iter()
-            .map(|perm| perm.check(&bin_dir, sorted))
+            .map(|perm| {
+                let out = perm.check(&bin_dir, &self.sorted);
+                info!(?perm, outcome = ?out);
+
+                out
+            })
             .collect::<anyhow::Result<Vec<_>>>()?;
 
         let mut out = outcomes
@@ -40,6 +46,6 @@ impl<'a> Translated<'a> {
 
         writeln!(out)?;
 
-        todo!()
+        Ok(out)
     }
 }

@@ -19,9 +19,11 @@ pub(crate) use crate::args::sort_order::{SortOrder, SortOrderKind};
     long_about = None,
 )]
 pub(crate) struct Args {
-    /// Length of the input collection to sort and check the permutations of
-    /// against its non-increasingly or non-decreasinly sorted order.
-    max: usize,
+    /// Lengths of the input collections to consider for running the entire
+    /// permutations of collections with these lenghts through the checker
+    /// program.
+    #[arg(value_parser = 1..)]
+    max: Vec<usize>,
     /// Whether to sort the input collection ascendingly. Is exclusive with
     /// `--descendingly`.
     #[arg(short, long, required = true, conflicts_with = "descendingly")]
@@ -34,14 +36,14 @@ pub(crate) struct Args {
     #[arg(long, value_name = "PATH")]
     directory: Option<String>,
     /// File to save the result of permuting the collection. Leave empty to not
-    /// avoid saving a symbolic representation of the permutation.
+    /// save a symbolic representation of the permutation.
     #[arg(short, long, value_name = "PATH")]
     perms_file: Option<String>,
 }
 
 impl Args {
-    pub(crate) fn cap(&self) -> usize {
-        let Self { max, .. } = *self;
+    pub(crate) fn cap(&self) -> &[usize] {
+        let Self { max, .. } = self;
 
         max
     }

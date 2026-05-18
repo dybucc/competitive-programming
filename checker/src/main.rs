@@ -1,6 +1,7 @@
 #![feature(exit_status_error, string_from_utf8_lossy_owned)]
 
 use std::{
+    cmp::Reverse,
     env,
     fmt::Write as FmtWrite,
     fs::{self, File},
@@ -16,7 +17,7 @@ use itertools::Itertools;
 use tracing::info;
 
 use crate::{
-    args::{Args, SortOrder},
+    args::{Args, SortOrder, SortOrderKind},
     translator::Translator,
 };
 
@@ -28,6 +29,11 @@ mod translator;
 // 4 element permutation:
 // i i i p p i i p i i i p i i i p p i i i i i i p
 // - - - + + - - + - - - + - - - + + - - - - - - +
+
+// TODO: stop outputting the checker's solution, and use the now modified
+// argument for the lengths of the input collections to permute, to write to the
+// output file all of the "translated" solutions (to have a side-by-side
+// comparison of the representation of solutions for each permutation number.)
 
 #[tracing::instrument(err(level = "info"))]
 fn main() -> anyhow::Result<()> {
@@ -61,13 +67,25 @@ fn main() -> anyhow::Result<()> {
 
     let mut stdout = BufWriter::new(io::stdout().lock());
     let perms: Vec<_> = (1..=cap).permutations(cap).collect();
+    let sorted = match sort_order.order() {
+        SortOrderKind::Ascendingly => {
+            let mut out = perms.first().cloned().unwrap();
+            out.sort_unstable();
+
+            out
+        }
+        SortOrderKind::Descendingly => {
+            let mut out = perms.first().cloned().unwrap();
+            out.sort_unstable_by_key(|n| Reverse(*n));
+
+            out
+        }
+    };
 
     if let Some(perms_file) = args.perms_fie() {
         with_perms_file(perms_file, &dir, sort_order, perms.clone())?;
     }
 
-    // TODO: finish up tweaking this part to adapt to the changes to work with the
-    // translator interface.
     perms.iter().try_for_each(|perm| {
         info!(?perm);
 
@@ -88,7 +106,7 @@ fn main() -> anyhow::Result<()> {
         info!(stringified_perm = input);
 
         let mut cmd = Command::new("cargo")
-            .args(["r", "--", &input])
+            .arg("r")
             .current_dir(&dir)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -119,9 +137,7 @@ fn with_perms_file(
 
     translator.extend(perms);
 
-    let translated = translator.translate_all().check(bin_dir)?;
-
-    fs::write(path, translated)?;
+    fs::write(path, translator.translate_all().check(bin_dir)?)?;
 
     Ok(())
 }
